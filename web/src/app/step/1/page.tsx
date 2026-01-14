@@ -4,9 +4,23 @@
  * Minimalistisch: Video + Weiter-Button
  */
 
+"use client";
+
 import Link from "next/link";
+import { useEffect } from "react";
+import { useSession } from "@/contexts/SessionContext";
 
 export default function Step1Page() {
+  const { updateProgress, markStepCompleted, sessionCode } = useSession();
+
+  // Fortschritt aktualisieren, wenn Seite geladen wird
+  useEffect(() => {
+    if (sessionCode) {
+      updateProgress(1);
+      markStepCompleted(1);
+    }
+  }, [sessionCode, updateProgress, markStepCompleted]);
+
   return (
     <div className="min-h-screen bg-zinc-50 px-6">
       <main className="mx-auto w-full max-w-4xl pb-16 pt-14">

@@ -26,20 +26,53 @@ export default function Step3Page() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<ProfileResult | null>(null);
+  const [showChat, setShowChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   
-  // Profil temporär im SessionContext speichern (ohne Code)
+  // SessionContext für Profil-Verwaltung
   const sessionContext = useSession();
+
+  // Beim Laden: Prüfen ob bereits ein Profil existiert
+  useEffect(() => {
+    // Fortschritt aktualisieren (wenn Session existiert)
+    if (sessionContext.sessionCode) {
+      sessionContext.updateProgress(3);
+      sessionContext.markStepCompleted(3);
+    }
+
+    // 1. Zuerst im SessionContext prüfen
+    if (sessionContext.profile) {
+      setProfile(sessionContext.profile);
+      setShowChat(false);
+      return;
+    }
+
+    // 2. Alternativ im localStorage prüfen (Fallback)
+    try {
+      const savedProfile = localStorage.getItem("canvas_temp_profile");
+      if (savedProfile) {
+        const parsedProfile = JSON.parse(savedProfile);
+        setProfile(parsedProfile);
+        setShowChat(false);
+        return;
+      }
+    } catch (error) {
+      console.error("Fehler beim Laden des Profils aus localStorage:", error);
+    }
+
+    // 3. Kein Profil vorhanden → Chat anzeigen
+    setShowChat(true);
+  }, [sessionContext.profile, sessionContext.sessionCode, sessionContext.updateProgress]);
 
   // Auto-scroll zu neuen Nachrichten
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Initiale Begrüßung von der KI abrufen
+  // Initiale Begrüßung von der KI abrufen (nur wenn Chat angezeigt werden soll)
   useEffect(() => {
-    if (messages.length === 0) {
+    if (showChat && messages.length === 0) {
       // Starte Chat mit leerer Nachricht, damit KI mit Willkommensnachricht beginnt
       async function initChat() {
         setIsLoading(true);
@@ -70,7 +103,7 @@ export default function Step3Page() {
       }
       initChat();
     }
-  }, [messages.length]);
+  }, [showChat, messages.length]);
 
   async function sendMessage() {
     if (!input.trim() || isLoading) return;
@@ -125,10 +158,19 @@ export default function Step3Page() {
     }
   }
 
+  // Profil neu erstellen
+  function recreateProfile() {
+    setProfile(null);
+    setMessages([]);
+    setShowChat(true);
+    // Profil aus localStorage entfernen
+    localStorage.removeItem("canvas_temp_profile");
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 px-6 pb-16 pt-14">
       <main className="mx-auto w-full max-w-3xl">
-        {!profile ? (
+        {!profile || showChat ? (
           /* Chat Interface */
           <div className="flex h-[calc(100vh-8rem)] flex-col">
             {/* Chat Messages */}
@@ -222,8 +264,14 @@ export default function Step3Page() {
               </div>
             </div>
 
-            {/* Weiter Button */}
-            <div className="mt-6 flex justify-end">
+            {/* Buttons */}
+            <div className="mt-6 flex justify-between">
+              <button
+                onClick={recreateProfile}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-300 bg-white px-6 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 focus:outline-none focus:ring-4 focus:ring-zinc-200"
+              >
+                Profil neu erstellen
+              </button>
               <button
                 onClick={() => router.push("/step/4")}
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-950 px-8 text-sm font-semibold text-white hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-200"

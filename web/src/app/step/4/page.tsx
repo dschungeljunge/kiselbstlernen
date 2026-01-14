@@ -21,10 +21,26 @@ export default function Step4Page() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [sessionCode, setSessionCode] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { createSession } = useSession();
+  const { 
+    createSession, 
+    updateProgress, 
+    markStepCompleted, 
+    sessionCode: existingSessionCode,
+    profile: existingProfile 
+  } = useSession();
 
-  // Beim Laden: Profil aus localStorage holen und Code generieren
+  // Beim Laden: Prüfen ob Session bereits existiert oder neue Session erstellen
   useEffect(() => {
+    // Falls Session bereits existiert, Code und Profil aus SessionContext laden
+    if (existingSessionCode && existingProfile) {
+      setSessionCode(existingSessionCode);
+      setProfile(existingProfile);
+      updateProgress(4);
+      markStepCompleted(4);
+      return;
+    }
+
+    // Sonst: Neue Session erstellen, falls Profil im localStorage vorhanden
     const tempProfile = localStorage.getItem("canvas_temp_profile");
     if (tempProfile) {
       const profileData = JSON.parse(tempProfile);
@@ -33,7 +49,7 @@ export default function Step4Page() {
       // Code generieren und Session speichern
       generateAndSaveSession(profileData);
     }
-  }, []);
+  }, [existingSessionCode, existingProfile, updateProgress, markStepCompleted]);
 
   async function generateAndSaveSession(profileData: ProfileData) {
     setIsGenerating(true);
@@ -63,51 +79,30 @@ export default function Step4Page() {
   return (
     <div className="min-h-screen bg-zinc-50 px-6 pb-16 pt-14">
       <main className="mx-auto w-full max-w-3xl">
-        {/* Info-Box: Session-System Erklärung */}
-        <div className="rounded-xl border border-zinc-200 bg-white p-8">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                className="text-blue-600"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 16v-4M12 8h.01" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-zinc-950">
-                Zwischenschritte speichern
-              </h2>
-              <div className="mt-3 space-y-3 text-sm leading-6 text-zinc-700">
-                <p>
-                  Du kannst jederzeit pausieren und später weitermachen – <strong>ganz ohne Anmeldung</strong>.
-                </p>
-                <p>
-                  Dazu verwenden wir ein <strong>anonymes Lern-Code-System</strong>: 
-                  Du erhältst einen persönlichen Code, mit dem du deinen Fortschritt 
-                  speichern und später fortsetzen kannst.
-                </p>
-                <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-900">
-                  💡 <strong>So funktioniert's:</strong> Notiere dir den Code unten oder 
-                  mache einen Screenshot. Auf der Startseite kannst du ihn eingeben, 
-                  um dort weiterzumachen, wo du aufgehört hast.
-                </p>
-              </div>
-            </div>
-          </div>
+        
+        <h1 className="text-2xl font-semibold text-zinc-950">
+          Zwischenschritte speichern
+        </h1>
+        
+        <div className="mt-6 space-y-4 text-base leading-7 text-zinc-700">
+          <p>
+            Du kannst jederzeit pausieren und später weitermachen – <strong>ganz ohne Anmeldung</strong>.
+          </p>
+          <p>
+            Dazu verwenden wir ein <strong>anonymes Lern-Code-System</strong>: 
+            Du erhältst einen persönlichen Code, mit dem du deinen Fortschritt 
+            speichern und später fortsetzen kannst.
+          </p>
+          <p>
+            Notiere dir den Code unten oder mache einen Screenshot. Auf der Startseite 
+            kannst du ihn eingeben, um dort weiterzumachen, wo du aufgehört hast.
+          </p>
         </div>
 
         {/* Session-Code Anzeige */}
         {isGenerating ? (
-          <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-8 text-center">
-            <div className="inline-flex items-center gap-2 text-sm text-zinc-600">
+          <div className="mt-8 rounded-lg border border-zinc-200 bg-white p-8 text-center">
+            <div className="inline-flex items-center gap-2 text-base text-zinc-600">
               <div className="h-2 w-2 animate-pulse rounded-full bg-zinc-400" />
               <div className="h-2 w-2 animate-pulse rounded-full bg-zinc-400 [animation-delay:0.2s]" />
               <div className="h-2 w-2 animate-pulse rounded-full bg-zinc-400 [animation-delay:0.4s]" />
@@ -115,68 +110,42 @@ export default function Step4Page() {
             </div>
           </div>
         ) : sessionCode ? (
-          <div className="mt-6 rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-8">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg">
+          <div className="mt-8 space-y-4">
+            <div className="text-base font-medium text-zinc-900">
+              Dein persönlicher Lern-Code:
+            </div>
+            
+            <div className="flex items-center gap-3 rounded-lg border-2 border-zinc-300 bg-white px-6 py-5">
+              <span className="flex-1 font-mono text-2xl font-bold tracking-wider text-zinc-950">
+                {formatSessionCode(sessionCode)}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(sessionCode);
+                  alert("Code kopiert!");
+                }}
+                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-zinc-300 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-300"
+                title="Code kopieren"
+              >
                 <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
+                  strokeWidth="2"
                 >
-                  <path d="M9 11l3 3L22 4" />
-                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+                  <rect x="5" y="5" width="9" height="9" rx="1" />
+                  <path d="M3 11V3a2 2 0 012-2h6" />
                 </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-zinc-950">
-                  ✅ Dein Lern-Code wurde erstellt!
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-zinc-700">
-                  Mit diesem Code kannst du jederzeit dort weitermachen, wo du aufgehört hast.
-                </p>
-                
-                <div className="mt-5 space-y-2">
-                  <div className="text-sm font-semibold text-zinc-900">
-                    Dein persönlicher Lern-Code:
-                  </div>
-                  <div className="flex items-center gap-3 rounded-xl border-2 border-blue-300 bg-white px-5 py-4 shadow-sm">
-                    <span className="flex-1 font-mono text-2xl font-bold tracking-wider text-blue-600">
-                      {formatSessionCode(sessionCode)}
-                    </span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(sessionCode);
-                        alert("✅ Code kopiert! Du findest ihn jetzt in deiner Zwischenablage.");
-                      }}
-                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
-                      title="Code kopieren"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <rect x="5" y="5" width="9" height="9" rx="1" />
-                        <path d="M3 11V3a2 2 0 012-2h6" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {profile && (
-                  <div className="mt-4 rounded-lg bg-white px-4 py-3 text-sm text-zinc-700">
-                    <strong>Gespeichert:</strong> {profile.name}
-                  </div>
-                )}
-              </div>
+              </button>
             </div>
+
+            {profile && (
+              <div className="text-base text-zinc-600">
+                Gespeichert: <span className="font-medium text-zinc-900">{profile.name}</span>
+              </div>
+            )}
           </div>
         ) : null}
 

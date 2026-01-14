@@ -26,6 +26,8 @@ const STEPS: Step[] = [
   { id: 6, title: "Erste Übung", href: "/step/6" },
   { id: 7, title: "Zweite Übung", href: "/step/7" },
   { id: 8, title: "Dritte Übung", href: "/step/8" },
+  { id: 9, title: "Reflexion", href: "/step/9" },
+  { id: 10, title: "Abschluss", href: "/step/10" },
 ];
 
 export function ProgressDrawer() {

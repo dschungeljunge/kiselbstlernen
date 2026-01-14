@@ -20,11 +20,11 @@ export default function Home() {
     setIsLoading(true);
     setError("");
 
-    const success = await loadSession(code);
+    const result = await loadSession(code);
 
-    if (success) {
-      // Session geladen → zur letzten Position springen
-      router.push("/step/1"); // Wird durch SessionContext zur richtigen Step geleitet
+    if (result.success && result.currentStep) {
+      // Session geladen → zur aktuellen Position springen
+      router.push(`/step/${result.currentStep}`);
     } else {
       setError("Code nicht gefunden. Bitte überprüfe die Eingabe.");
       setIsLoading(false);

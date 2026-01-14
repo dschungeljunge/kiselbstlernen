@@ -49,6 +49,7 @@ export async function POST(request: Request) {
         : null,
       currentStep: data.current_step,
       completedSteps: data.completed_steps || [],
+      merksatz: data.reflection_merksatz || null,
       stepData: data.step_data || {},
     });
   } catch (error) {

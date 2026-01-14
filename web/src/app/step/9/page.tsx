@@ -1,174 +1,299 @@
 /**
- * Step 9 – Zwischenstand und Ausblick
+ * Step 9 – Reflexion mit KI
  * 
- * Lob für den bisherigen Fortschritt und Hinweis auf kommende Inhalte
+ * KI-gestützter Reflexionsdialog über das Gelernte mit Bezug zum Lehrpersonen-Profil
+ * Am Ende wird ein konkretes Reflexionsprodukt erstellt
  */
 
-import Link from "next/link";
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/contexts/SessionContext";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface ReflectionProduct {
+  merksatz: string;
+  profileName: string;
+  kontext: string;
+}
 
 export default function Step9Page() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [reflectionProduct, setReflectionProduct] = useState<ReflectionProduct | null>(null);
+  const [showChat, setShowChat] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  
+  // SessionContext für Profil-Zugriff
+  const sessionContext = useSession();
+
+  // Beim Laden: Prüfen ob bereits ein Merksatz existiert
+  useEffect(() => {
+    // Fortschritt aktualisieren (wenn Session existiert)
+    if (sessionContext.sessionCode) {
+      sessionContext.updateProgress(9);
+      sessionContext.markStepCompleted(9);
+    }
+
+    // 1. Zuerst prüfen ob Merksatz im SessionContext vorhanden
+    if (sessionContext.merksatz) {
+      setReflectionProduct({
+        merksatz: sessionContext.merksatz,
+        profileName: sessionContext.profile?.name || "",
+        kontext: ""
+      });
+      setShowChat(false);
+      return;
+    }
+
+    // 2. Kein Merksatz vorhanden → Chat anzeigen
+    setShowChat(true);
+  }, [sessionContext.merksatz, sessionContext.sessionCode, sessionContext.profile]);
+
+  // Auto-scroll zu neuen Nachrichten
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Initiale Begrüßung von der KI abrufen (nur wenn Chat angezeigt werden soll)
+  useEffect(() => {
+    if (showChat && messages.length === 0 && sessionContext.profile) {
+      async function initChat() {
+        setIsLoading(true);
+        try {
+          const response = await fetch("/api/reflection-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              messages: [],
+              profile: sessionContext.profile 
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Chat-Anfrage fehlgeschlagen");
+          }
+
+          const data = await response.json();
+          setMessages([{ role: "assistant", content: data.message }]);
+        } catch (error) {
+          console.error("Chat-Fehler:", error);
+          setMessages([
+            {
+              role: "assistant",
+              content: "Willkommen zur Reflexion! Es gab einen Fehler beim Laden. Bitte lade die Seite neu.",
+            },
+          ]);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      initChat();
+    }
+  }, [showChat, messages.length, sessionContext.profile]);
+
+  async function sendMessage() {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: "user", content: input };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/reflection-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          messages: updatedMessages,
+          profile: sessionContext.profile 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Chat-Anfrage fehlgeschlagen");
+      }
+
+      const data = await response.json();
+
+      // Prüfen, ob Reflexionsprodukt fertig ist
+      if (data.reflectionProduct) {
+        setReflectionProduct(data.reflectionProduct);
+        // Merksatz in der Datenbank speichern
+        await sessionContext.saveMerksatz(data.reflectionProduct.merksatz);
+      }
+
+      // Assistent-Antwort hinzufügen
+      setMessages([...updatedMessages, { role: "assistant", content: data.message }]);
+    } catch (error) {
+      console.error("Chat-Fehler:", error);
+      setMessages([
+        ...updatedMessages,
+        {
+          role: "assistant",
+          content: "Entschuldigung, es gab einen Fehler. Bitte versuche es erneut.",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Enter-Taste zum Senden
+  function handleKeyPress(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+
+  // Prüfung ob Profil vorhanden ist
+  if (!sessionContext.profile) {
+    return (
+      <div className="min-h-screen bg-zinc-50 px-6 pb-16 pt-14">
+        <main className="mx-auto w-full max-w-3xl">
+          <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center">
+            <h2 className="text-2xl font-semibold text-zinc-950">
+              Kein Profil gefunden
+            </h2>
+            <p className="mt-4 text-zinc-600">
+              Bitte erstelle zuerst ein Lehrpersonen-Profil in Schritt 3.
+            </p>
+            <button
+              onClick={() => router.push("/step/3")}
+              className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-zinc-950 px-8 text-sm font-semibold text-white hover:bg-zinc-800"
+            >
+              Zu Schritt 3
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-zinc-50 to-yellow-50 px-6">
-      <main className="mx-auto w-full max-w-4xl pb-16 pt-14">
-        
-        {/* Gratulations-Container */}
-        <div className="relative overflow-hidden rounded-2xl border-2 border-yellow-400 bg-gradient-to-br from-white to-yellow-50 p-10 shadow-xl">
-          
-          {/* Dekoratives Element */}
-          <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-yellow-300 opacity-20 blur-3xl"></div>
-          <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-yellow-400 opacity-20 blur-3xl"></div>
-          
-          <div className="relative">
-            {/* Icon */}
-            <div className="mb-6 flex justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 shadow-lg">
-                <svg 
-                  width="40" 
-                  height="40" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="white" 
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
+    <div className="min-h-screen bg-zinc-50 px-6 pb-16 pt-14">
+      <main className="mx-auto w-full max-w-3xl">
+        {!reflectionProduct || showChat ? (
+          /* Chat Interface */
+          <div className="flex h-[calc(100vh-8rem)] flex-col">
+            {/* Header */}
+            <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4">
+              <h1 className="text-xl font-semibold text-zinc-950">
+                Kurzer Zwischenstopp
+              </h1>
+              <p className="mt-2 text-sm text-zinc-600">
+                Lass uns kurz über deine Erfahrungen sprechen und gemeinsam einen persönlichen 
+                Merksatz entwickeln, der deine Erkenntnisse auf den Punkt bringt.
+              </p>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="mb-4 flex-1 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6">
+              <div className="space-y-4">
+                {messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-6 ${
+                        msg.role === "user"
+                          ? "bg-zinc-900 text-white"
+                          : "bg-zinc-100 text-zinc-900"
+                      }`}
+                    >
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                    </div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%] rounded-xl bg-zinc-100 px-4 py-3 text-sm text-zinc-600">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 animate-pulse rounded-full bg-zinc-400" />
+                        <div className="h-2 w-2 animate-pulse rounded-full bg-zinc-400 [animation-delay:0.2s]" />
+                        <div className="h-2 w-2 animate-pulse rounded-full bg-zinc-400 [animation-delay:0.4s]" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
               </div>
             </div>
 
-            {/* Haupttitel */}
-            <h1 className="mb-4 text-center text-4xl font-bold tracking-tight text-zinc-950">
-              Herzliche Gratulation!
-            </h1>
-
-            {/* Lob-Text */}
-            <div className="mx-auto max-w-2xl space-y-6 text-center">
-              <p className="text-xl leading-relaxed text-zinc-800">
-                Du hast einen wichtigen Meilenstein erreicht! Du hast die ersten Schritte 
-                der Weiterbildung erfolgreich abgeschlossen und damit gezeigt, dass du bereit 
-                bist, neue Wege im Umgang mit KI zu gehen.
-              </p>
-
-              <p className="text-lg leading-relaxed text-zinc-700">
-                Die ersten Übungen haben dir gezeigt, wie KI als Werkzeug in deinem 
-                Berufsalltag echte Entlastung schaffen kann. Du hast gelernt, wie du 
-                Dokumente analysierst, Unterrichtsmaterialien differenzierst und 
-                administrative Aufgaben effizienter gestaltest – alles mit dem Ziel, 
-                mehr Zeit für das Wesentliche zu gewinnen: die Arbeit mit deinen Lernenden.
-              </p>
-            </div>
-
-            {/* Trennlinie */}
-            <div className="my-8 flex items-center justify-center">
-              <div className="h-1 w-24 rounded-full bg-gradient-to-r from-transparent via-yellow-400 to-transparent"></div>
-            </div>
-
-            {/* Ausblick */}
-            <div className="mx-auto max-w-2xl space-y-4 text-center">
-              <h2 className="text-2xl font-bold text-zinc-950">
-                Wie geht es weiter?
-              </h2>
-              
-              <p className="text-lg leading-relaxed text-zinc-700">
-                Die nächsten Module werden in Kürze aufgeschaltet. Diese werden sich 
-                mit weiteren zentralen Bereichen deiner professionellen Praxis beschäftigen:
-              </p>
-
-              <div className="mt-6 grid gap-4 text-left sm:grid-cols-2">
-                <div className="rounded-xl border border-yellow-300 bg-white/60 p-5 backdrop-blur">
-                  <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-100 text-yellow-600">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                      </svg>
-                    </div>
-                    <h3 className="font-semibold text-zinc-950">Modul 2</h3>
-                  </div>
-                  <p className="text-sm text-zinc-600">
-                    Didaktische Qualität und Unterrichtsgestaltung
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-yellow-300 bg-white/60 p-5 backdrop-blur">
-                  <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-100 text-yellow-600">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      </svg>
-                    </div>
-                    <h3 className="font-semibold text-zinc-950">Modul 3</h3>
-                  </div>
-                  <p className="text-sm text-zinc-600">
-                    Individuelle Förderung und Beziehungsarbeit
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-yellow-300 bg-white/60 p-5 backdrop-blur sm:col-span-2">
-                  <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-100 text-yellow-600">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                    </div>
-                    <h3 className="font-semibold text-zinc-950">Modul 4</h3>
-                  </div>
-                  <p className="text-sm text-zinc-600">
-                    Verantwortungsvoller Umgang: Datenschutz, Ethik und kritische Reflexion
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Info-Box */}
-            <div className="mt-8 rounded-xl border-l-4 border-yellow-400 bg-yellow-50/50 p-5">
-              <p className="text-sm leading-relaxed text-zinc-700">
-                <strong className="text-zinc-900">Tipp:</strong> Du kannst jederzeit mit deinem 
-                persönlichen Lern-Code zurückkehren und deinen Fortschritt weiterführen, sobald 
-                die neuen Module verfügbar sind. Der Code wurde dir nach dem Profil-Chat zugestellt.
-              </p>
+            {/* Input Area */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Deine Antwort..."
+                disabled={isLoading}
+                className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-4 focus:ring-zinc-100 disabled:opacity-60"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim() || isLoading}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-950 px-6 text-sm font-semibold text-white hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-200 disabled:opacity-60"
+              >
+                Senden
+              </button>
             </div>
           </div>
-        </div>
+        ) : (
+          /* Merksatz-Anzeige */
+          <div className="space-y-6">
+            {/* Hauptkarte mit Merksatz */}
+            <div className="rounded-xl border border-zinc-200 bg-white p-12">
+              
+              {/* Der Merksatz - groß und prominent */}
+              <div className="mb-8">
+                <p className="text-2xl leading-relaxed text-zinc-900">
+                  {reflectionProduct.merksatz}
+                </p>
+              </div>
 
-        {/* Zurück zur Startseite Button */}
-        <div className="mt-10 flex justify-center">
-          <Link
-            href="/"
-            className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-10 text-base font-semibold text-white shadow-lg transition-all hover:scale-105 hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-300"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            Zurück zur Startseite
-          </Link>
-        </div>
+              {/* Kontext */}
+              <div className="border-t border-zinc-200 pt-6">
+                <p className="text-sm leading-relaxed text-zinc-600">
+                  {reflectionProduct.kontext}
+                </p>
+              </div>
+            </div>
 
-        {/* Zusätzlicher Motivationstext */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-zinc-600">
-            Vielen Dank für dein Engagement und deine Bereitschaft, dich 
-            auf diese Lernreise einzulassen!
-          </p>
-        </div>
+            {/* Buttons */}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setShowChat(true);
+                  setReflectionProduct(null);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-6 py-2.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+              >
+                Merksatz anpassen
+              </button>
+              
+              <button
+                onClick={() => router.push("/step/10")}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-950 px-8 text-sm font-semibold text-white hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-200"
+              >
+                Weiter →
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
 }
-

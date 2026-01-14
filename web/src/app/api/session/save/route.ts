@@ -20,6 +20,7 @@ export async function POST(request: Request) {
       profile,
       currentStep,
       completedSteps,
+      merksatz,
       stepData,
     } = body;
 
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
           profile_strengths: profile?.strengths || null,
           current_step: currentStep,
           completed_steps: completedSteps,
+          reflection_merksatz: merksatz || null,
           step_data: stepData,
         })
         .eq("session_code", sessionCode);
@@ -63,6 +65,7 @@ export async function POST(request: Request) {
           profile_strengths: profile?.strengths || null,
           current_step: currentStep,
           completed_steps: completedSteps,
+          reflection_merksatz: merksatz || null,
           step_data: stepData,
         });
 
