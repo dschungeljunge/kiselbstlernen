@@ -1,0 +1,63 @@
+/**
+ * API Route – Session laden
+ * 
+ * POST /api/session/load
+ * Body: { sessionCode }
+ */
+
+import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+
+export async function POST(request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createSupabaseServerClient(cookieStore);
+    
+    const { sessionCode } = await request.json();
+
+    if (!sessionCode) {
+      return NextResponse.json(
+        { error: "Session-Code fehlt" },
+        { status: 400 }
+      );
+    }
+
+    // Session laden
+    const { data, error } = await supabase
+      .from("learning_sessions")
+      .select("*")
+      .eq("session_code", sessionCode)
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json(
+        { error: "Session nicht gefunden" },
+        { status: 404 }
+      );
+    }
+
+    // Response formatieren
+    return NextResponse.json({
+      sessionCode: data.session_code,
+      profile: data.profile_name
+        ? {
+            name: data.profile_name,
+            description: data.profile_description,
+            strengths: data.profile_strengths,
+          }
+        : null,
+      currentStep: data.current_step,
+      completedSteps: data.completed_steps || [],
+      stepData: data.step_data || {},
+    });
+  } catch (error) {
+    console.error("Session Load Error:", error);
+    return NextResponse.json(
+      { error: "Fehler beim Laden" },
+      { status: 500 }
+    );
+  }
+}
+
+
