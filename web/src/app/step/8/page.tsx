@@ -31,10 +31,10 @@ export default function Step8Page() {
         {/* Weiter Button */}
         <div className="mt-8 flex justify-end">
           <Link
-            href="/"
+            href="/step/9"
             className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-950 px-8 text-sm font-semibold text-white hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-200"
           >
-            Zurück zur Startseite →
+            Weiter →
           </Link>
         </div>
       </main>

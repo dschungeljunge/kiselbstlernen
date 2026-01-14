@@ -14,7 +14,7 @@ export default function Step7Page() {
         <div className="relative w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
           <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
             <iframe
-              src="https://www.loom.com/embed/765e806e258d450dbf494077b31cf49a"
+              src="https://www.loom.com/embed/2a5fabcbc2a94e8eb54caecbbc6004a3"
               frameBorder="0"
               allowFullScreen
               style={{

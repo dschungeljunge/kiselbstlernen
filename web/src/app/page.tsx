@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
-import { SessionExplainer } from "@/components/SessionExplainer";
 import { CoachProfile } from "@/components/CoachProfile";
+import { RelevanceQuiz } from "@/components/RelevanceQuiz";
 
 export default function Home() {
   const [code, setCode] = useState("");
@@ -33,32 +33,22 @@ export default function Home() {
 
   return (
     <>
-      <SessionExplainer />
-      
       {/* Hero-Bereich mit FHNW-Branding */}
       <div className="relative overflow-hidden bg-gradient-to-br from-yellow-400 via-yellow-300 to-yellow-400">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30"></div>
         
         <div className="relative px-6 py-20">
           <div className="mx-auto max-w-5xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm backdrop-blur">
-              <span className="flex h-2 w-2">
-                <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-yellow-600 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-600"></span>
-              </span>
-              Eine Weiterbildung der PH FHNW
-            </div>
-            
             <h1 className="text-5xl font-bold tracking-tight text-zinc-950 md:text-6xl">
               KI-Kompass
             </h1>
             <p className="mt-2 text-2xl font-semibold text-zinc-900">
-              KI‑Weiterbildung für Lehrpersonen
+              Online-Weiterbildung für Lehrpersonen des BBZ Olten
             </p>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-800">
-              Entdecken Sie in diesem strukturierten Lernpfad, wie Sie Künstliche Intelligenz 
-              gewinnbringend in Ihren Unterricht integrieren können. Praxisnah, interaktiv und 
-              speziell für Lehrpersonen konzipiert.
+              Eine strukturierte Lernreise zum professionellen, verantwortungsbewussten Einsatz 
+              von KI im Berufsalltag. KI wird nicht als Technikthema vermittelt, sondern als 
+              Werkzeug zur Entlastung und zur Stärkung Ihrer professionellen Handlungskompetenz.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-4">
@@ -82,14 +72,14 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Statistiken */}
+            {/* Kernmerkmale */}
             <div className="mt-12 grid grid-cols-3 gap-6">
               <div className="rounded-xl bg-white/80 p-4 backdrop-blur">
-                <div className="text-3xl font-bold text-zinc-950">8</div>
-                <div className="mt-1 text-sm font-medium text-zinc-700">Lernschritte</div>
+                <div className="text-3xl font-bold text-zinc-950">4</div>
+                <div className="mt-1 text-sm font-medium text-zinc-700">Module</div>
               </div>
               <div className="rounded-xl bg-white/80 p-4 backdrop-blur">
-                <div className="text-3xl font-bold text-zinc-950">2–3h</div>
+                <div className="text-3xl font-bold text-zinc-950">2–4h</div>
                 <div className="mt-1 text-sm font-medium text-zinc-700">Zeitaufwand</div>
               </div>
               <div className="rounded-xl bg-white/80 p-4 backdrop-blur">
@@ -105,12 +95,17 @@ export default function Home() {
       <div className="min-h-screen bg-zinc-50 px-6">
         <main className="mx-auto w-full max-w-5xl pb-16 pt-16">
           
+          {/* Relevanz-Quiz */}
+          <section className="mb-16">
+            <RelevanceQuiz />
+          </section>
+
           {/* Über den Coach */}
           <section className="mb-16">
             <CoachProfile 
               name="Peter Rigert"
-              role="Dozent für Digitale Bildung & KI"
-              bio="Als langjähriger Dozent an der PH FHNW begleite ich Lehrpersonen auf ihrem Weg in die digitale Zukunft. Mein Fokus liegt auf der praktischen Anwendung von KI-Tools im Unterricht und der Entwicklung von zukunftsfähigen Lernszenarien."
+              role="Dozent für Digitale Bildung & KI, PH FHNW"
+              bio="Ich begleite Sie auf dieser Lernreise durch die Welt der KI-gestützten Unterrichtspraxis. Mein Fokus liegt darauf, KI nicht als Technikthema zu vermitteln, sondern als praktisches Werkzeug, das Sie in Ihrem professionellen Alltag entlastet und Ihre pädagogische Wirksamkeit stärkt."
               imageUrl="/peter-rigert.jpg"
             />
           </section>
@@ -119,7 +114,7 @@ export default function Home() {
           <section className="mb-16">
             <div className="mb-8 inline-block">
               <h2 className="text-3xl font-bold tracking-tight text-zinc-950">
-                Was erwartet dich?
+                So funktioniert die Weiterbildung
               </h2>
               <div className="mt-2 h-1 w-20 rounded-full bg-yellow-400"></div>
             </div>
@@ -135,11 +130,12 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-zinc-950">
-                  Strukturierter Lernpfad
+                  Linear geführt, selbstbestimmt
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                  Durchlaufen Sie 8 aufeinander aufbauende Schritte – von den Grundlagen 
-                  bis zur praktischen Anwendung im eigenen Unterricht.
+                  Eine klare Abfolge schafft Orientierung und reduziert Überforderung. 
+                  Sie bestimmen Tempo und Tiefe der Bearbeitung selbst – es gibt keine 
+                  Prüfung und keine Bewertung.
                 </p>
               </div>
 
@@ -147,16 +143,17 @@ export default function Home() {
               <div className="group rounded-2xl border-2 border-zinc-200 bg-white p-6 transition-all hover:border-yellow-400 hover:shadow-lg">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-100 text-yellow-600 transition-all group-hover:bg-yellow-400 group-hover:text-white">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v6l4 2" />
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-zinc-950">
-                  Individuelles Tempo
+                  Geschützter Entwicklungsraum
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                  Lernen Sie in Ihrem eigenen Rhythmus. Ihr Fortschritt wird automatisch 
-                  gespeichert und Sie können jederzeit weitermachen.
+                  Keine personenbezogenen Daten, kein Monitoring, keine Rückmeldung an 
+                  den Arbeitgeber. Ihr Fortschritt wird über einen anonymen Code gespeichert, 
+                  den nur Sie kennen.
                 </p>
               </div>
 
@@ -164,18 +161,17 @@ export default function Home() {
               <div className="group rounded-2xl border-2 border-zinc-200 bg-white p-6 transition-all hover:border-yellow-400 hover:shadow-lg">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-100 text-yellow-600 transition-all group-hover:bg-yellow-400 group-hover:text-white">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    <path d="M12 2v20M2 12h20" />
+                    <circle cx="12" cy="12" r="4" />
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-zinc-950">
-                  Interaktive Übungen
+                  Doppeldecker-Logik
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                  Wenden Sie das Gelernte direkt an: Erstellen Sie Ihren persönlichen 
-                  AI-Circle und entwickeln Sie konkrete Unterrichtsszenarien.
+                  Jede Übung verbindet ein reales Praxisproblem aus Ihrem Lehralltag mit 
+                  einem konkreten KI-Feature. So erwerben Sie handlungsnahe Kompetenzen 
+                  statt abstraktes Toolwissen.
                 </p>
               </div>
 
@@ -183,15 +179,16 @@ export default function Home() {
               <div className="group rounded-2xl border-2 border-zinc-200 bg-white p-6 transition-all hover:border-yellow-400 hover:shadow-lg">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-100 text-yellow-600 transition-all group-hover:bg-yellow-400 group-hover:text-white">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-zinc-950">
-                  KI-gestützte Begleitung
+                  Produktivität als Wertschöpfung
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-                  Erhalten Sie personalisierte Rückmeldungen durch unseren KI-Assistenten 
-                  und entwickeln Sie Ihre digitalen Kompetenzen gezielt weiter.
+                  Nicht Ihr Unterricht wird „optimiert", sondern zeitraubende Nebenprozesse 
+                  werden reduziert. Mehr Zeit für das, wo Lernende wirklich erreicht werden.
                 </p>
               </div>
             </div>
@@ -256,14 +253,31 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Wichtige Hinweise */}
+          <section className="mb-16">
+            <div className="rounded-lg bg-zinc-50 p-5">
+              <p className="text-xs leading-relaxed text-zinc-600">
+                <strong className="text-zinc-700">Hinweise:</strong> Es gibt keine Leistungsmessung, 
+                Prüfung oder Bewertung. Ihr Fortschritt wird über einen anonymen Code gespeichert – 
+                keine personenbezogenen Daten werden verarbeitet. Didaktische Entscheidungen bleiben 
+                bei Ihnen; KI liefert Vorschläge, Sie treffen die professionellen Entscheidungen.
+              </p>
+            </div>
+          </section>
+
           {/* Footer-Hinweis */}
           <div className="rounded-xl bg-zinc-100 p-6 text-center">
             <p className="text-sm text-zinc-600">
-              Diese Weiterbildung ist Teil des Angebots der{" "}
+              Eine Weiterbildung für Lehrpersonen des <strong className="text-zinc-900">BBZ Olten</strong>, 
+              entwickelt und begleitet durch die{" "}
               <strong className="text-zinc-900">
-                Pädagogischen Hochschule der Fachhochschule Nordwestschweiz (PH FHNW)
+                Pädagogische Hochschule der Fachhochschule Nordwestschweiz (PH FHNW)
               </strong>
               .
+            </p>
+            <p className="mt-3 text-xs text-zinc-500">
+              Dies ist ein <strong>Prototyp</strong> im Rahmen der Entwicklung einer 
+              Online-Weiterbildungsplattform.
             </p>
           </div>
         </main>

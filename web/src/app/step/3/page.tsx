@@ -37,16 +37,38 @@ export default function Step3Page() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Initiale Begrüßung
+  // Initiale Begrüßung von der KI abrufen
   useEffect(() => {
     if (messages.length === 0) {
-      setMessages([
-        {
-          role: "assistant",
-          content:
-            "Hallo! Ich möchte dich heute etwas besser kennenlernen und gemeinsam mit dir herausfinden, was dich als Lehrperson auszeichnet. Lass uns mit einer einfachen Frage starten:\n\n**Was unterrichtest du und auf welcher Stufe?**",
-        },
-      ]);
+      // Starte Chat mit leerer Nachricht, damit KI mit Willkommensnachricht beginnt
+      async function initChat() {
+        setIsLoading(true);
+        try {
+          const response = await fetch("/api/profile-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: [] }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Chat-Anfrage fehlgeschlagen");
+          }
+
+          const data = await response.json();
+          setMessages([{ role: "assistant", content: data.message }]);
+        } catch (error) {
+          console.error("Chat-Fehler:", error);
+          setMessages([
+            {
+              role: "assistant",
+              content: "Willkommen! Es gab einen Fehler beim Laden. Bitte lade die Seite neu.",
+            },
+          ]);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      initChat();
     }
   }, [messages.length]);
 
