@@ -27,7 +27,10 @@ export default function Step3Page() {
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<ProfileResult | null>(null);
   const [showChat, setShowChat] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showSkip, setShowSkip] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   
   // SessionContext für Profil-Verwaltung
@@ -65,10 +68,31 @@ export default function Step3Page() {
     setShowChat(true);
   }, [sessionContext.profile, sessionContext.sessionCode, sessionContext.updateProgress]);
 
-  // Auto-scroll zu neuen Nachrichten
+  // Notknopf: erst nach 60s im Chat anzeigen (falls Nutzer:innen festhängen)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!showChat) {
+      setShowSkip(false);
+      return;
+    }
+
+    setShowSkip(false);
+    const timeoutId = window.setTimeout(() => setShowSkip(true), 60_000);
+    return () => window.clearTimeout(timeoutId);
+  }, [showChat]);
+
+  // Auto-scroll zu neuen Nachrichten (nur innerhalb des Chat-Containers, kein Page-Jump beim Laden)
+  useEffect(() => {
+    if (!showChat) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const isInitial = prevMessageCountRef.current === 0;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: isInitial ? "auto" : "smooth",
+    });
+    prevMessageCountRef.current = messages.length;
+  }, [messages, showChat]);
 
   // Initiale Begrüßung von der KI abrufen (nur wenn Chat angezeigt werden soll)
   useEffect(() => {
@@ -99,6 +123,8 @@ export default function Step3Page() {
           ]);
         } finally {
           setIsLoading(false);
+          // Fokus direkt ins Eingabefeld
+          setTimeout(() => inputRef.current?.focus(), 0);
         }
       }
       initChat();
@@ -130,6 +156,7 @@ export default function Step3Page() {
       // Prüfen, ob Profil fertig ist
       if (data.profile) {
         setProfile(data.profile);
+        setShowChat(false);
         // Profil temporär im localStorage speichern (für Step 4)
         localStorage.setItem("canvas_temp_profile", JSON.stringify(data.profile));
       }
@@ -147,11 +174,13 @@ export default function Step3Page() {
       ]);
     } finally {
       setIsLoading(false);
+      // Fokus zurück ins Eingabefeld (nach Klick auf Button bleibt sonst oft der Fokus am Button)
+      setTimeout(() => inputRef.current?.focus(), 0);
     }
   }
 
   // Enter-Taste zum Senden
-  function handleKeyPress(e: React.KeyboardEvent) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -163,18 +192,39 @@ export default function Step3Page() {
     setProfile(null);
     setMessages([]);
     setShowChat(true);
+    setShowSkip(false);
     // Profil aus localStorage entfernen
     localStorage.removeItem("canvas_temp_profile");
+  }
+
+  function skipStep() {
+    const fallbackProfile: ProfileResult = {
+      name: "Profil übersprungen",
+      description:
+        "Du hast die Profil-Erstellung übersprungen (Notfall-Option). Du kannst den Kurs trotzdem absolvieren und später jederzeit ein Profil erstellen.",
+      strengths: [],
+    };
+
+    try {
+      localStorage.setItem("canvas_temp_profile", JSON.stringify(fallbackProfile));
+    } catch (error) {
+      console.error("Fehler beim Speichern des Fallback-Profils:", error);
+    }
+
+    router.push("/step/4");
   }
 
   return (
     <div className="min-h-screen bg-zinc-50 px-6 pb-16 pt-14">
       <main className="mx-auto w-full max-w-3xl">
-        {!profile || showChat ? (
+        {showChat ? (
           /* Chat Interface */
           <div className="flex h-[calc(100vh-8rem)] flex-col">
             {/* Chat Messages */}
-            <div className="mb-4 flex-1 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6">
+            <div
+              ref={messagesContainerRef}
+              className="mb-4 flex-1 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6"
+            >
               <div className="space-y-4">
                 {messages.map((msg, idx) => (
                   <div
@@ -203,28 +253,45 @@ export default function Step3Page() {
                     </div>
                   </div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
             </div>
 
             {/* Input Area */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Deine Antwort..."
-                disabled={isLoading}
-                className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-4 focus:ring-zinc-100 disabled:opacity-60"
-              />
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim() || isLoading}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-950 px-6 text-sm font-semibold text-white hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-200 disabled:opacity-60"
-              >
-                Senden
-              </button>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Deine Antwort..."
+                  disabled={isLoading}
+                  className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-4 focus:ring-zinc-100 disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  onClick={sendMessage}
+                  onMouseDown={(e) => e.preventDefault()}
+                  disabled={!input.trim() || isLoading}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-950 px-6 text-sm font-semibold text-white hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-200 disabled:opacity-60"
+                >
+                  Senden
+                </button>
+              </div>
+
+              {showSkip && (
+                <div className="flex items-center justify-end gap-2 text-xs text-zinc-500">
+                  <span>Hängt es?</span>
+                  <button
+                    type="button"
+                    onClick={skipStep}
+                    className="font-semibold text-zinc-600 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900 hover:decoration-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 focus:ring-offset-2"
+                  >
+                    Schritt überspringen
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ) : profile ? (
@@ -267,12 +334,14 @@ export default function Step3Page() {
             {/* Buttons */}
             <div className="mt-6 flex justify-between">
               <button
+                type="button"
                 onClick={recreateProfile}
                 className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-300 bg-white px-6 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 focus:outline-none focus:ring-4 focus:ring-zinc-200"
               >
                 Profil neu erstellen
               </button>
               <button
+                type="button"
                 onClick={() => router.push("/step/4")}
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-950 px-8 text-sm font-semibold text-white hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-200"
               >
@@ -280,7 +349,11 @@ export default function Step3Page() {
               </button>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="rounded-xl border border-zinc-200 bg-white p-8 text-sm text-zinc-700">
+            Lade…
+          </div>
+        )}
       </main>
     </div>
   );

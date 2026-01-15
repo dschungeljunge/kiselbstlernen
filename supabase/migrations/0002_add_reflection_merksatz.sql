@@ -8,3 +8,4 @@ ADD COLUMN IF NOT EXISTS reflection_merksatz TEXT;
 COMMENT ON COLUMN learning_sessions.reflection_merksatz IS 
   'Persönlicher Merksatz aus der Reflexion in Step 9';
 
+

@@ -75,6 +75,29 @@ interface Message {
   content: string;
 }
 
+function extractJsonObject(text: string): string | null {
+  const trimmed = (text ?? "").trim();
+  if (!trimmed) return null;
+
+  // Remove common markdown code fences
+  const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const unfenced = fenceMatch ? fenceMatch[1].trim() : trimmed;
+
+  // Try direct parse first
+  try {
+    JSON.parse(unfenced);
+    return unfenced;
+  } catch {
+    // continue
+  }
+
+  // Fallback: find the outermost JSON object substring
+  const first = unfenced.indexOf("{");
+  const last = unfenced.lastIndexOf("}");
+  if (first === -1 || last === -1 || last <= first) return null;
+  return unfenced.slice(first, last + 1);
+}
+
 export async function POST(request: Request) {
   try {
     const { messages }: { messages: Message[] } = await request.json();
@@ -97,7 +120,10 @@ export async function POST(request: Request) {
 
     // Prüfen, ob Profil erstellt wurde (JSON-Format)
     try {
-      const profileData = JSON.parse(assistantMessage);
+      const jsonCandidate = extractJsonObject(assistantMessage);
+      if (!jsonCandidate) throw new Error("Kein JSON im Assistant-Output");
+
+      const profileData = JSON.parse(jsonCandidate);
       if (profileData.profile) {
         return NextResponse.json({
           message: "Vielen Dank für das Gespräch! Hier ist dein Profil:",
