@@ -1,23 +1,20 @@
-/**
- * Session Context – Globaler State für Lern-Sessions
- * 
- * Verwaltet Session-Code, Profil und Fortschritt
- */
-
 "use client";
 
-import {
+/**
+ * SessionContext – Fortschritts-Management für den linearen Kurs
+ *
+ * Lädt die Session aus dem Lern-Code (localStorage) und stellt
+ * updateProgress / markStepCompleted für alle Step-Seiten bereit.
+ */
+
+import React, {
   createContext,
   useContext,
   useState,
+  useCallback,
   useEffect,
-  ReactNode,
 } from "react";
-import {
-  generateSessionCode,
-  saveSessionToLocal,
-  loadSessionFromLocal,
-} from "@/lib/session-manager";
+import { loadSessionFromLocal, saveSessionToLocal } from "@/lib/session-manager";
 
 interface ProfileData {
   name: string;
@@ -25,180 +22,135 @@ interface ProfileData {
   strengths: string[];
 }
 
-interface SessionContextType {
+interface SessionState {
   sessionCode: string | null;
   profile: ProfileData | null;
   currentStep: number;
   completedSteps: number[];
-  merksatz: string | null;
-  
-  // Actions
-  createSession: (profile: ProfileData) => Promise<string>;
-  loadSession: (code: string) => Promise<{ success: boolean; currentStep?: number }>;
-  updateProgress: (step: number) => Promise<void>;
-  markStepCompleted: (step: number) => Promise<void>;
-  saveMerksatz: (merksatz: string) => Promise<void>;
+  stepData: Record<string, unknown>;
+  isLoading: boolean;
 }
 
-const SessionContext = createContext<SessionContextType | undefined>(undefined);
+interface LoadSessionResult {
+  success: boolean;
+  currentStep?: number;
+}
 
-export function SessionProvider({ children }: { children: ReactNode }) {
-  const [sessionCode, setSessionCode] = useState<string | null>(null);
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  const [merksatz, setMerksatz] = useState<string | null>(null);
+interface SessionContextType extends SessionState {
+  updateProgress: (step: number) => Promise<void>;
+  markStepCompleted: (step: number) => Promise<void>;
+  setProfile: (profile: ProfileData, code: string) => void;
+  refreshSession: () => Promise<void>;
+  loadSession: (code: string) => Promise<LoadSessionResult>;
+}
 
-  // Beim Start: Session aus localStorage laden
-  useEffect(() => {
-    const savedCode = loadSessionFromLocal();
-    if (savedCode) {
-      loadSession(savedCode); // Result wird hier nicht benötigt, da kein Redirect
+const SessionContext = createContext<SessionContextType | null>(null);
+
+export function SessionProvider({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<SessionState>({
+    sessionCode: null,
+    profile: null,
+    currentStep: 1,
+    completedSteps: [],
+    stepData: {},
+    isLoading: true,
+  });
+
+  const loadSession = useCallback(async (code: string): Promise<LoadSessionResult> => {
+    try {
+      const res = await fetch("/api/session/load", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionCode: code }),
+      });
+      if (!res.ok) return { success: false };
+      const data = await res.json();
+      if (data.error) return { success: false };
+      setState({
+        sessionCode: code,
+        profile: data.profile ?? null,
+        currentStep: data.currentStep ?? 1,
+        completedSteps: data.completedSteps ?? [],
+        stepData: data.stepData ?? {},
+        isLoading: false,
+      });
+      saveSessionToLocal(code);
+      return { success: true, currentStep: data.currentStep ?? 1 };
+    } catch {
+      setState((prev) => ({ ...prev, sessionCode: code, isLoading: false }));
+      return { success: false };
     }
   }, []);
 
-  // Session erstellen (nach Profil-Chat)
-  async function createSession(profileData: ProfileData): Promise<string> {
-    const code = generateSessionCode(profileData.name);
-    
-    try {
+  useEffect(() => {
+    const code = loadSessionFromLocal();
+    if (code) {
+      loadSession(code);
+    } else {
+      setState((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [loadSession]);
+
+  const saveProgress = useCallback(
+    async (updates: Partial<{ currentStep: number; completedSteps: number[] }>) => {
+      const code =
+        updates.currentStep !== undefined
+          ? state.sessionCode
+          : state.sessionCode;
+      if (!code) return;
+
       await fetch("/api/session/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionCode: code,
-          profile: profileData,
-          currentStep: 4, // Session wird in Step 4 erstellt
-          completedSteps: [1, 2, 3, 4], // Steps 1-4 sind abgeschlossen
-          stepData: {},
-        }),
+        body: JSON.stringify({ sessionCode: code, ...updates }),
       });
+    },
+    [state.sessionCode]
+  );
 
-      setSessionCode(code);
-      setProfile(profileData);
-      setCurrentStep(4);
-      setCompletedSteps([1, 2, 3, 4]);
-      saveSessionToLocal(code);
-
-      return code;
-    } catch (error) {
-      console.error("Session-Erstellung fehlgeschlagen:", error);
-      throw error;
-    }
-  }
-
-  // Session laden (via Code-Eingabe)
-  async function loadSession(code: string): Promise<{ success: boolean; currentStep?: number }> {
-    try {
-      const response = await fetch("/api/session/load", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionCode: code.toUpperCase().replace("-", "") }),
+  const updateProgress = useCallback(
+    async (step: number) => {
+      setState((prev) => {
+        const newStep = Math.max(prev.currentStep, step);
+        if (newStep !== prev.currentStep) {
+          saveProgress({ currentStep: newStep });
+        }
+        return { ...prev, currentStep: newStep };
       });
+    },
+    [saveProgress]
+  );
 
-      if (!response.ok) return { success: false };
-
-      const data = await response.json();
-      
-      setSessionCode(data.sessionCode);
-      setProfile(data.profile);
-      setCurrentStep(data.currentStep);
-      setCompletedSteps(data.completedSteps);
-      setMerksatz(data.merksatz || null);
-      saveSessionToLocal(data.sessionCode);
-
-      return { success: true, currentStep: data.currentStep };
-    } catch (error) {
-      console.error("Session-Laden fehlgeschlagen:", error);
-      return { success: false };
-    }
-  }
-
-  // Fortschritt aktualisieren
-  async function updateProgress(step: number) {
-    if (!sessionCode) return;
-
-    setCurrentStep(step);
-
-    try {
-      await fetch("/api/session/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionCode,
-          profile,
-          currentStep: step,
-          completedSteps,
-          stepData: {},
-        }),
+  const markStepCompleted = useCallback(
+    async (step: number) => {
+      setState((prev) => {
+        if (prev.completedSteps.includes(step)) return prev;
+        const updated = [...prev.completedSteps, step];
+        saveProgress({ completedSteps: updated });
+        return { ...prev, completedSteps: updated };
       });
-    } catch (error) {
-      console.error("Fortschritt-Update fehlgeschlagen:", error);
-    }
-  }
+    },
+    [saveProgress]
+  );
 
-  // Step als abgeschlossen markieren
-  async function markStepCompleted(step: number) {
-    if (!sessionCode || completedSteps.includes(step)) return;
+  const setProfile = useCallback((profile: ProfileData, code: string) => {
+    setState((prev) => ({ ...prev, profile, sessionCode: code }));
+  }, []);
 
-    const newCompleted = [...completedSteps, step];
-    setCompletedSteps(newCompleted);
-
-    try {
-      await fetch("/api/session/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionCode,
-          profile,
-          currentStep,
-          completedSteps: newCompleted,
-          merksatz,
-          stepData: {},
-        }),
-      });
-    } catch (error) {
-      console.error("Step-Completion fehlgeschlagen:", error);
-    }
-  }
-
-  // Merksatz speichern
-  async function saveMerksatz(newMerksatz: string) {
-    if (!sessionCode) return;
-
-    setMerksatz(newMerksatz);
-
-    try {
-      await fetch("/api/session/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionCode,
-          profile,
-          currentStep,
-          completedSteps,
-          merksatz: newMerksatz,
-          stepData: {},
-        }),
-      });
-    } catch (error) {
-      console.error("Merksatz-Speicherung fehlgeschlagen:", error);
-    }
-  }
+  const refreshSession = useCallback(async () => {
+    const code = state.sessionCode ?? loadSessionFromLocal();
+    if (code) await loadSession(code);
+  }, [state.sessionCode, loadSession]);
 
   return (
     <SessionContext.Provider
       value={{
-        sessionCode,
-        profile,
-        currentStep,
-        completedSteps,
-        merksatz,
-        createSession,
-        loadSession,
+        ...state,
         updateProgress,
         markStepCompleted,
-        saveMerksatz,
+        setProfile,
+        refreshSession,
+        loadSession,
       }}
     >
       {children}
@@ -206,13 +158,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useSession() {
-  const context = useContext(SessionContext);
-  if (!context) {
-    throw new Error("useSession muss innerhalb von SessionProvider verwendet werden");
-  }
-  return context;
+export function useSession(): SessionContextType {
+  const ctx = useContext(SessionContext);
+  if (!ctx) throw new Error("useSession must be used within SessionProvider");
+  return ctx;
 }
-
-
-

@@ -1,8 +1,8 @@
 /**
  * API Route – Session speichern
- * 
+ *
  * POST /api/session/save
- * Body: { sessionCode, profile, currentStep, completedSteps, stepData }
+ * Body: { sessionCode, currentStep?, completedSteps?, profile?, stepData? }
  */
 
 import { NextResponse } from "next/server";
@@ -13,16 +13,10 @@ export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
     const supabase = createSupabaseServerClient(cookieStore);
-    
+
     const body = await request.json();
-    const {
-      sessionCode,
-      profile,
-      currentStep,
-      completedSteps,
-      merksatz,
-      stepData,
-    } = body;
+    const { sessionCode, currentStep, completedSteps, profile, stepData } =
+      body;
 
     if (!sessionCode) {
       return NextResponse.json(
@@ -31,45 +25,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // Prüfen, ob Session bereits existiert
-    const { data: existing } = await supabase
+    // Nur definierte Felder aktualisieren
+    const updates: Record<string, unknown> = {};
+    if (currentStep !== undefined) updates.current_step = currentStep;
+    if (completedSteps !== undefined) updates.completed_steps = completedSteps;
+    if (profile !== undefined) {
+      updates.profile_name = profile.name;
+      updates.profile_description = profile.description;
+      updates.profile_strengths = profile.strengths;
+    }
+    if (stepData !== undefined) updates.step_data = stepData;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ success: true });
+    }
+
+    // Upsert: Session anlegen falls nicht vorhanden
+    const { error } = await supabase
       .from("learning_sessions")
-      .select("session_code")
-      .eq("session_code", sessionCode)
-      .single();
+      .upsert({ session_code: sessionCode, ...updates });
 
-    if (existing) {
-      // Update
-      const { error } = await supabase
-        .from("learning_sessions")
-        .update({
-          profile_name: profile?.name || null,
-          profile_description: profile?.description || null,
-          profile_strengths: profile?.strengths || null,
-          current_step: currentStep,
-          completed_steps: completedSteps,
-          reflection_merksatz: merksatz || null,
-          step_data: stepData,
-        })
-        .eq("session_code", sessionCode);
-
-      if (error) throw error;
-    } else {
-      // Insert
-      const { error } = await supabase
-        .from("learning_sessions")
-        .insert({
-          session_code: sessionCode,
-          profile_name: profile?.name || null,
-          profile_description: profile?.description || null,
-          profile_strengths: profile?.strengths || null,
-          current_step: currentStep,
-          completed_steps: completedSteps,
-          reflection_merksatz: merksatz || null,
-          step_data: stepData,
-        });
-
-      if (error) throw error;
+    if (error) {
+      console.error("Supabase Upsert Error:", error);
+      return NextResponse.json(
+        { error: "Speichern fehlgeschlagen" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
@@ -81,5 +62,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-
