@@ -29,6 +29,7 @@ export interface Message {
 export interface SituationData {
   text: string;
   kiZusammenfassung: string;
+  prompt?: string;
 }
 
 export interface StrategyData {
@@ -37,6 +38,16 @@ export interface StrategyData {
   interactiveAnswers: Record<string, unknown>;
   selbsteinschaetzung: number;
   naechsterSchritt: string;
+  abgeschlossen: boolean;
+}
+
+export interface ZielData {
+  kontext: string;
+  absicht: string;
+  massnahme: string;
+  termin: string;
+  zielsatz: string;
+  chatHistory: Message[];
   abgeschlossen: boolean;
 }
 
@@ -55,6 +66,7 @@ interface ReflexionState {
   situation: SituationData | null;
   selectedStrategies: string[];
   strategies: Record<string, StrategyData>;
+  ziel: ZielData | null;
   isLoading: boolean;
 }
 
@@ -63,6 +75,7 @@ interface ReflexionContextType extends ReflexionState {
   setSituation: (situation: SituationData) => void;
   setSelectedStrategies: (strategies: string[]) => void;
   updateStrategy: (code: string, data: Partial<StrategyData>) => void;
+  updateZiel: (data: Partial<ZielData>) => void;
   saveToDatabase: () => Promise<void>;
   getNextStrategy: (currentCode: string) => string | null;
 }
@@ -76,6 +89,7 @@ export function ReflexionProvider({ children }: { children: React.ReactNode }) {
     situation: null,
     selectedStrategies: [],
     strategies: {},
+    ziel: null,
     isLoading: true,
   });
 
@@ -99,13 +113,26 @@ export function ReflexionProvider({ children }: { children: React.ReactNode }) {
       .then((r) => r.json())
       .then((data) => {
         const reflexionData = data.stepData?.reflexion ?? {};
+
+        // Warmup-Empfehlung aus localStorage als Vorauswahl
+        let selectedStrategies = reflexionData.selectedStrategies ?? [];
+        if (selectedStrategies.length === 0 && typeof window !== "undefined") {
+          const warmupRaw = localStorage.getItem("warmup_empfehlung");
+          if (warmupRaw) {
+            try {
+              selectedStrategies = JSON.parse(warmupRaw);
+            } catch { /* ignore */ }
+          }
+        }
+
         setState((prev) => ({
           ...prev,
           sessionCode: code,
           profile: data.profile ?? null,
           situation: reflexionData.situation ?? null,
-          selectedStrategies: reflexionData.selectedStrategies ?? [],
+          selectedStrategies,
           strategies: reflexionData.strategies ?? {},
+          ziel: reflexionData.ziel ?? null,
           isLoading: false,
         }));
       })
@@ -128,6 +155,23 @@ export function ReflexionProvider({ children }: { children: React.ReactNode }) {
 
   const setSelectedStrategies = useCallback((strategies: string[]) => {
     setState((prev) => ({ ...prev, selectedStrategies: strategies }));
+  }, []);
+
+  const updateZiel = useCallback((data: Partial<ZielData>) => {
+    setState((prev) => ({
+      ...prev,
+      ziel: {
+        kontext: "",
+        absicht: "",
+        massnahme: "",
+        termin: "",
+        zielsatz: "",
+        chatHistory: [],
+        abgeschlossen: false,
+        ...prev.ziel,
+        ...data,
+      },
+    }));
   }, []);
 
   const updateStrategy = useCallback(
@@ -166,6 +210,7 @@ export function ReflexionProvider({ children }: { children: React.ReactNode }) {
           situation: currentState.situation,
           selectedStrategies: currentState.selectedStrategies,
           strategies: currentState.strategies,
+          ziel: currentState.ziel,
         },
       }),
     });
@@ -189,6 +234,7 @@ export function ReflexionProvider({ children }: { children: React.ReactNode }) {
         setSituation,
         setSelectedStrategies,
         updateStrategy,
+        updateZiel,
         saveToDatabase,
         getNextStrategy,
       }}

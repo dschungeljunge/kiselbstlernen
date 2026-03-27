@@ -16,6 +16,8 @@ export default function SituationPage() {
   const [summaryDone, setSummaryDone] = useState(false);
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [error, setError] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [promptOpen, setPromptOpen] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -94,7 +96,7 @@ export default function SituationPage() {
       const res = await fetch("/api/reflection/situation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ situationText, profile }),
+        body: JSON.stringify({ situationText, profile, prompt: prompt.trim() || undefined }),
       });
 
       const data = await res.json();
@@ -114,10 +116,14 @@ export default function SituationPage() {
   // Weiter zur Strategie-Auswahl
   const handleWeiter = useCallback(async () => {
     const summary = kiSummary || situationText;
-    setSituation({ text: situationText, kiZusammenfassung: summary });
+    setSituation({
+      text: situationText,
+      kiZusammenfassung: summary,
+      prompt: prompt.trim() || undefined,
+    });
     await saveToDatabase();
     router.push("/reflexion/hub");
-  }, [kiSummary, situationText, setSituation, saveToDatabase, router]);
+  }, [kiSummary, situationText, prompt, setSituation, saveToDatabase, router]);
 
   const canProceed = situationText.trim().length > 30;
 
@@ -231,6 +237,59 @@ export default function SituationPage() {
             {error}
           </p>
         )}
+
+        {/* Vorbereiteter Prompt (optional) */}
+        <div className="mb-4 rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <button
+            type="button"
+            onClick={() => setPromptOpen(!promptOpen)}
+            className="flex w-full items-center justify-between px-5 py-4 text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-100">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-zinc-800">
+                  Vorbereiteter Prompt
+                  <span className="ml-2 text-xs font-normal text-zinc-400">optional</span>
+                </p>
+                {!promptOpen && prompt.trim() && (
+                  <p className="text-xs text-zinc-500 line-clamp-1 mt-0.5">{prompt}</p>
+                )}
+              </div>
+            </div>
+            <svg
+              className={`h-4 w-4 flex-shrink-0 text-zinc-400 transition-transform ${promptOpen ? "rotate-180" : ""}`}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            >
+              <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {promptOpen && (
+            <div className="border-t border-zinc-100 px-5 pb-5 pt-4">
+              <p className="mb-3 text-sm text-zinc-600">
+                Hast du den Lernenden einen vorbereiteten Prompt zur Verfügung gestellt?
+                Füge ihn hier ein – er wird Teil des Reflexionskontexts.
+              </p>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder={`z.B. "Du bist mein Lerncoach. Wenn ich dir eine Aufgabe zeige, gibst du mir nie die Lösung direkt – stattdessen stellst du mir drei Fragen, die mich zum Nachdenken bringen..."`}
+                rows={5}
+                className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 font-mono text-sm leading-relaxed text-zinc-800 placeholder:font-sans placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-zinc-100"
+              />
+              {prompt.trim() && (
+                <p className="mt-2 text-xs text-zinc-500">
+                  ✓ Prompt wird gespeichert und in der Reflexion berücksichtigt.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* KI-Zusammenfassung */}
         {canProceed && !summaryDone && (

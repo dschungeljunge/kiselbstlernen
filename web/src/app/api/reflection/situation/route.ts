@@ -51,7 +51,8 @@ export async function POST(request: Request) {
     const {
       situationText,
       profile,
-    }: { situationText: string; profile: Profile | null } =
+      prompt,
+    }: { situationText: string; profile: Profile | null; prompt?: string } =
       await request.json();
 
     if (!situationText?.trim()) {
@@ -61,13 +62,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const promptSection = prompt?.trim()
+      ? `\n\nVon der Lehrperson vorbereiteter Prompt für die Lernenden:\n\`\`\`\n${prompt.trim()}\n\`\`\``
+      : "";
+
     const completion = await openai.chat.completions.create({
       model: "gpt-5.2",
       messages: [
         { role: "system", content: buildSystemPrompt(profile) },
         {
           role: "user",
-          content: `Hier ist meine Beschreibung des KI-Einsatzes:\n\n${situationText}`,
+          content: `Hier ist meine Beschreibung des KI-Einsatzes:\n\n${situationText}${promptSection}`,
         },
       ],
       temperature: 0.4,

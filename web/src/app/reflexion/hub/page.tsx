@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useReflexion } from "@/contexts/ReflexionContext";
 import { STRATEGIES, getStrategy } from "@/lib/reflexion-strategies";
 import { InteractiveAnswerSummary } from "@/components/reflexion/InteractiveAnswerSummary";
+import { generateContextMarkdown } from "@/lib/export-context";
 
 function Stars({ value }: { value: number }) {
   return (
@@ -22,12 +23,20 @@ function Stars({ value }: { value: number }) {
 }
 
 export default function HubPage() {
-  const { profile, situation, strategies } = useReflexion();
+  const { profile, situation, strategies, ziel } = useReflexion();
 
   const [gesamtKommentar, setGesamtKommentar] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [kommentarDone, setKommentarDone] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+
+  const handleCopyContext = useCallback(async () => {
+    const markdown = generateContextMarkdown(profile, situation, strategies);
+    await navigator.clipboard.writeText(markdown);
+    setCopyState("copied");
+    setTimeout(() => setCopyState("idle"), 2500);
+  }, [profile, situation, strategies]);
 
   const completedCodes = STRATEGIES.map((s) => s.code).filter(
     (c) => strategies[c]?.abgeschlossen
@@ -144,9 +153,32 @@ export default function HubPage() {
                   Situation bearbeiten
                 </Link>
               )}
+              <button
+                onClick={handleCopyContext}
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl border-2 border-zinc-900/20 bg-white/60 px-4 text-sm font-semibold text-zinc-800 backdrop-blur transition hover:bg-white"
+              >
+                {copyState === "copied" ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Kopiert!
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Kontext kopieren
+                  </>
+                )}
+              </button>
               <button onClick={() => window.print()}
                 className="inline-flex h-10 items-center gap-1.5 rounded-xl border-2 border-zinc-900/20 bg-white/60 px-4 text-sm font-semibold text-zinc-800 backdrop-blur transition hover:bg-white">
-                Exportieren
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" />
+                </svg>
+                PDF drucken
               </button>
             </div>
           </div>
@@ -322,6 +354,33 @@ export default function HubPage() {
                 Du hast einen vollständigen Blick auf deinen KI-Einsatz entwickelt.
               </p>
             </div>
+          )}
+
+          {/* Ziel bereits abgeschlossen – Hinweis anzeigen */}
+          {ziel?.abgeschlossen && (
+            <section className="mb-14">
+              <div className="rounded-2xl border-2 border-yellow-400 bg-gradient-to-br from-yellow-50 to-white p-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-yellow-400 text-zinc-900">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-zinc-950">KI-Ziel definiert</p>
+                    {ziel.zielsatz && (
+                      <p className="mt-0.5 text-sm italic text-zinc-600 line-clamp-2">„{ziel.zielsatz}"</p>
+                    )}
+                  </div>
+                  <Link
+                    href="/reflexion/ziel"
+                    className="flex-shrink-0 text-xs font-medium text-zinc-500 hover:text-zinc-800"
+                  >
+                    Ansehen →
+                  </Link>
+                </div>
+              </div>
+            </section>
           )}
 
           {/* Footer */}
