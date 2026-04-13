@@ -6,13 +6,11 @@
  */
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
+import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createSupabaseServerClient(cookieStore);
+    const supabase = createSupabaseAdmin();
     
     const { sessionCode } = await request.json();
 

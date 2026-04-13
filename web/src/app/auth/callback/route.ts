@@ -13,14 +13,17 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next") ?? "/prototype";
+  const rawNext = url.searchParams.get("next") ?? "/prototype";
+
+  // Open-Redirect verhindern: nur relative Pfade auf eigener Origin zulassen
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//")
+    ? rawNext
+    : "/prototype";
 
   if (!code) {
-    // Kein Code = kein Session Exchange möglich.
     return NextResponse.redirect(new URL(`/login?error=missing_code`, url));
   }
 
-  // Cookie Store abrufen und an createSupabaseServerClient übergeben
   const cookieStore = await cookies();
   const supabase = createSupabaseServerClient(cookieStore);
 

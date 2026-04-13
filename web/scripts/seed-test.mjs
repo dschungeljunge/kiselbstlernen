@@ -7,9 +7,17 @@
  * Session-Code: TEST-DEMO-01
  */
 
-const SUPABASE_URL = "https://zgntjiotlvlrzczxuaol.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_hO464FdYSQcOEICUTuoMHg_9A4Ocab3";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SESSION_CODE = "TEST-DEMO-01";
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error(
+    "Fehlende Umgebungsvariablen: NEXT_PUBLIC_SUPABASE_URL und SUPABASE_SERVICE_ROLE_KEY müssen gesetzt sein.\n" +
+    "Beispiel: NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=eyJ... node scripts/seed-test.mjs"
+  );
+  process.exit(1);
+}
 
 // ── Vollständige Reflexionsdaten ──────────────────────────────────
 
@@ -220,8 +228,8 @@ async function seed() {
     `${SUPABASE_URL}/rest/v1/learning_sessions?session_code=eq.${SESSION_CODE}&select=session_code`,
     {
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       },
     }
   );
@@ -235,8 +243,8 @@ async function seed() {
       {
         method: "PATCH",
         headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
           "Content-Type": "application/json",
           Prefer: "return=minimal",
         },
@@ -266,8 +274,8 @@ async function seed() {
       {
         method: "POST",
         headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
           "Content-Type": "application/json",
           Prefer: "return=minimal",
         },
