@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { useSession } from "@/contexts/SessionContext";
+import ProfileInsightBox from "@/components/ProfileInsightBox";
 
 export default function Step5Page() {
   const { updateProgress, markStepCompleted, sessionCode } = useSession();
@@ -40,6 +41,11 @@ export default function Step5Page() {
               }}
             />
           </div>
+        </div>
+
+        {/* Personalisierte Profil-Infobox */}
+        <div className="mt-8">
+          <ProfileInsightBox stepNumber={5} />
         </div>
 
         {/* Weiter Button */}

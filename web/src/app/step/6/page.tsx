@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "@/contexts/SessionContext";
+import ProfileInsightBox from "@/components/ProfileInsightBox";
 
 export default function Step6Page() {
   const { updateProgress, markStepCompleted, sessionCode } = useSession();
@@ -47,8 +48,13 @@ export default function Step6Page() {
           </div>
         </div>
 
+        {/* Personalisierte Profil-Infobox */}
+        <div className="mt-8">
+          <ProfileInsightBox stepNumber={6} />
+        </div>
+
         {/* Optionale Unterstützungselemente */}
-        <div className="mt-8 space-y-4">
+        <div className="mt-4 space-y-4">
           
           {/* Direktlink zu Copilot */}
           <div className="rounded-xl border border-zinc-200 bg-white p-4">

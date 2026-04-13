@@ -54,6 +54,7 @@ WICHTIGE PRINZIPIEN:
 - Höre aktiv zu und gehe auf Antworten ein
 - Sei authentisch und zeige echtes Interesse
 - Das Gespräch soll sich leicht und unterhaltsam anfühlen, nicht wie ein formelles Interview
+- Signalisiere Fortschritt, z.B.: "Danke! Lass uns das jetzt zu einem Merksatz verdichten."
 - Verwende KEINE Emojis
 - Verwende KEINE fetten Schriften oder Markdown-Formatierung
 
@@ -82,6 +83,8 @@ Beispiele für gute Merksätze:
 - "Mit KI differenziere ich mühelos – so kann jede Lernende auf ihrem Level wachsen."
 - "KI ist mein Assistent für Routineaufgaben, damit ich meine Kreativität im Unterricht voll entfalten kann."
 
+WENN die Nachricht "[MERKSATZ_JETZT_ERSTELLEN]" kommt: Erstelle sofort den Merksatz basierend auf den bisherigen Antworten, auch wenn erst wenige Austausche stattgefunden haben. Nutze, was du hast.
+
 WICHTIG:
 - Erstelle den Merksatz gemeinsam mit der Lehrperson, nicht alleine
 - Höre auf ihre Worte und integriere ihre Formulierungen
@@ -99,6 +102,26 @@ interface Profile {
   strengths: string[];
 }
 
+function extractJsonObject(text: string): string | null {
+  const trimmed = (text ?? "").trim();
+  if (!trimmed) return null;
+
+  const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const unfenced = fenceMatch ? fenceMatch[1].trim() : trimmed;
+
+  try {
+    JSON.parse(unfenced);
+    return unfenced;
+  } catch {
+    // continue
+  }
+
+  const first = unfenced.indexOf("{");
+  const last = unfenced.lastIndexOf("}");
+  if (first === -1 || last === -1 || last <= first) return null;
+  return unfenced.slice(first, last + 1);
+}
+
 export async function POST(request: Request) {
   try {
     const { messages, profile }: { messages: Message[]; profile: Profile } = await request.json();
@@ -110,9 +133,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // OpenAI API Call
     const completion = await openai.chat.completions.create({
-      model: "gpt-5.2", // GPT-5.2: Neuestes Modell mit verbesserter Intelligenz
+      model: "gpt-5.2",
       messages: [
         { role: "system", content: getSystemPrompt(profile) },
         ...messages.map((msg) => ({
@@ -126,12 +148,14 @@ export async function POST(request: Request) {
 
     const assistantMessage = completion.choices[0].message.content || "";
 
-    // Prüfen, ob Reflexionsprodukt erstellt wurde (JSON-Format)
     try {
-      const reflectionData = JSON.parse(assistantMessage);
+      const jsonCandidate = extractJsonObject(assistantMessage);
+      if (!jsonCandidate) throw new Error("Kein JSON");
+
+      const reflectionData = JSON.parse(jsonCandidate);
       if (reflectionData.reflectionProduct) {
         return NextResponse.json({
-          message: "Vielen Dank für dieses wertvolle Reflexionsgespräch! Hier ist dein persönliches Reflexionsprodukt:",
+          message: "Vielen Dank für dieses wertvolle Reflexionsgespräch!",
           reflectionProduct: reflectionData.reflectionProduct,
         });
       }
