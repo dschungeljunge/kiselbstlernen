@@ -5,7 +5,7 @@
  * NIEMALS im Browser oder in Client Components importieren.
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseUrl } from "./env";
 
 function getServiceRoleKey(): string {
@@ -18,9 +18,11 @@ function getServiceRoleKey(): string {
   return key;
 }
 
-let adminClient: ReturnType<typeof createClient> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let adminClient: SupabaseClient<any, "public", any> | null = null;
 
-export function createSupabaseAdmin() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createSupabaseAdmin(): SupabaseClient<any, "public", any> {
   if (!adminClient) {
     adminClient = createClient(getSupabaseUrl(), getServiceRoleKey(), {
       auth: { persistSession: false, autoRefreshToken: false },
