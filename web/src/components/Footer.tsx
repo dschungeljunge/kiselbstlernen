@@ -24,6 +24,13 @@ export function Footer() {
           {/* Rechte Seite: Navigation */}
           <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
             <Link
+              href="/multiplikatoren"
+              className="text-zinc-600 transition-colors hover:text-zinc-900 hover:underline"
+            >
+              Multiplikator:innen
+            </Link>
+            <span className="text-zinc-300">•</span>
+            <Link
               href="/didaktischer-kommentar"
               className="text-zinc-600 transition-colors hover:text-zinc-900 hover:underline"
             >
