@@ -93,17 +93,28 @@ export function PollScheduler() {
   const [submitted, setSubmitted] = useState(false);
 
   const loadPoll = useCallback(async () => {
+    setError("");
     try {
       const res = await fetch("/api/multiplikatoren/poll");
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError("Kein aktiver Termin-Poll vorhanden.");
+        const msg =
+          typeof data.error === "string"
+            ? data.error
+            : "Die Terminfindung konnte nicht geladen werden. Bitte später erneut versuchen.";
+        setError(msg);
+        setPoll(null);
+        setResponses([]);
         return;
       }
-      const data = await res.json();
-      setPoll(data.poll);
-      setResponses(data.responses);
+      setPoll(data.poll ?? null);
+      setResponses(data.responses ?? []);
     } catch {
-      setError("Fehler beim Laden der Terminfindung.");
+      setError(
+        "Netzwerkfehler beim Laden der Terminfindung. Bitte Seite neu laden."
+      );
+      setPoll(null);
+      setResponses([]);
     } finally {
       setLoading(false);
     }
@@ -169,6 +180,24 @@ export function PollScheduler() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-yellow-400" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/80 p-6 text-center">
+        <p className="text-sm leading-relaxed text-zinc-800">{error}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setLoading(true);
+            loadPoll();
+          }}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-800 shadow-sm transition-colors hover:bg-zinc-50"
+        >
+          Erneut laden
+        </button>
       </div>
     );
   }
