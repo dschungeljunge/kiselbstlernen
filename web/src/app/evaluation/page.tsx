@@ -1,23 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { EVALUATION_LIKERT_ITEM_TEXTS } from "@/lib/evaluation-likert-labels";
 
 type AnswerMap = Record<string, number>;
 
-const likertItems = [
-  "Ich traue mir zu, KI-Tools sinnvoll in meinen Unterricht zu integrieren.",
-  "Ich kann Lernaufgaben entwickeln, bei denen KI den Lernprozess unterstützt.",
-  "Ich kann Lernende dabei unterstützen, KI reflektiert zu nutzen.",
-  "Der Einsatz von KI kann die Qualität meines Unterrichts verbessern.",
-  "KI kann mich bei der Planung oder Durchführung von Unterricht wirksam unterstützen.",
-  "Der Einsatz von KI hilft mir, Lernprozesse effizienter zu gestalten.",
-  "Ich plane Unterricht so, dass der Einsatz von KI klar mit meinen Lernzielen verknüpft ist.",
-  "Ich kann einschätzen, in welchen Unterrichtssituationen der Einsatz von KI sinnvoll ist und in welchen nicht.",
-  "Ich kann begründen, warum ich KI in einer konkreten Unterrichtssituation einsetze oder bewusst darauf verzichte.",
-  "Ich beabsichtige, KI in den nächsten Wochen im Unterricht einzusetzen.",
-  "Ich plane, Unterrichtsmaterialien mit Unterstützung von KI weiterzuentwickeln.",
-];
+const likertItems = EVALUATION_LIKERT_ITEM_TEXTS;
 
 const likertOptions = [
   { value: 1, label: "Stimme überhaupt nicht zu" },
@@ -60,6 +49,7 @@ export default function EvaluationPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [questionIndex, setQuestionIndex] = useState(0);
+  const surveyStartedAtMs = useRef<number | null>(null);
 
   const generatedCode = useMemo(() => {
     return `${firstLetter(motherFirstName)}${firstLetter(homeTown)}${lastTwoDigits(
@@ -142,6 +132,10 @@ export default function EvaluationPage() {
       return;
     }
 
+    const started = surveyStartedAtMs.current;
+    const durationSec =
+      started != null && Number.isFinite(started) ? (Date.now() - started) / 1000 : undefined;
+
     setIsSaving(true);
     try {
       const response = await fetch("/api/evaluation", {
@@ -150,6 +144,7 @@ export default function EvaluationPage() {
         body: JSON.stringify({
           anonCode: code,
           answers,
+          durationSec: durationSec != null && durationSec >= 0 ? durationSec : undefined,
         }),
       });
 
@@ -178,6 +173,7 @@ export default function EvaluationPage() {
     setAnonCode(code);
     const loaded = await loadSavedData(code);
     if (loaded) {
+      surveyStartedAtMs.current = Date.now();
       setFlowStep("survey");
     }
   }

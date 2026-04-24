@@ -73,14 +73,49 @@ export async function GET(request: Request) {
   }
 }
 
+function mergeAnswersWithMeta(
+  answers: Record<string, unknown>,
+  rawDuration: unknown,
+): Record<string, unknown> {
+  let durationSec: number | undefined;
+  if (typeof rawDuration === "number" && Number.isFinite(rawDuration) && rawDuration >= 0) {
+    durationSec = Math.round(rawDuration * 100) / 100;
+  } else if (typeof rawDuration === "string" && rawDuration.trim() !== "") {
+    const n = parseFloat(rawDuration.replace(",", "."));
+    if (Number.isFinite(n) && n >= 0) {
+      durationSec = Math.round(n * 100) / 100;
+    }
+  }
+  if (durationSec == null) {
+    return answers;
+  }
+  return {
+    ...answers,
+    _meta: { durationSec },
+  };
+}
+
 export async function POST(request: Request) {
   try {
-    const { anonCode: rawCode, answers } = await request.json();
-    const anonCode = normalizeCode(rawCode);
+    const body = (await request.json()) as {
+      anonCode?: unknown;
+      answers?: unknown;
+      durationSec?: unknown;
+    };
+    const { anonCode: rawCode, answers, durationSec: rawDuration } = body;
+    if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+      return NextResponse.json({ error: "Antworten fehlen." }, { status: 400 });
+    }
+    const answerRecord = answers as Record<string, unknown>;
+    const anonCode = normalizeCode(
+      typeof rawCode === "string" ? rawCode : "",
+    );
 
     if (!isValidAnonCode(anonCode)) {
       return NextResponse.json({ error: "Ungültiger Code." }, { status: 400 });
     }
+
+    const answersToStore = mergeAnswersWithMeta(answerRecord, rawDuration);
 
     let measurementIndex = await getNextMeasurementIndex(anonCode);
     let attempts = 0;
@@ -89,7 +124,7 @@ export async function POST(request: Request) {
 
     while (attempts < maxAttempts) {
       attempts += 1;
-      const answersValidation = validateAnswers(answers);
+      const answersValidation = validateAnswers(answersToStore);
       if (!answersValidation.valid) {
         return NextResponse.json(
           { error: answersValidation.error ?? "Ungültige Antworten." },
@@ -102,7 +137,7 @@ export async function POST(request: Request) {
         anon_code: anonCode,
         measurement_index: measurementIndex,
         timepoint,
-        answers,
+        answers: answersToStore,
         submitted_at: new Date().toISOString(),
       });
 
