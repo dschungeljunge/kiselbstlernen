@@ -383,7 +383,7 @@ export default function EvaluationPage() {
         )}
 
         {flowStep === "completed" && (
-          <div className="mt-8">
+          <div className="mt-8 space-y-6">
             <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold text-zinc-950">Vielen Dank</h2>
               <p className="mt-2 text-sm text-zinc-600">
@@ -397,6 +397,75 @@ export default function EvaluationPage() {
               >
                 Zurück zum Start
               </button>
+            </div>
+
+            <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-zinc-950">Zum Schluss: Kursleitende online</h3>
+              <p className="mt-1 text-sm text-zinc-600">
+                Wenn Sie Lust haben, finden Sie hier die öffentlichen Profile.
+              </p>
+              <div className="mt-5 grid gap-6 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">Peter Rigert</p>
+                  <ul className="mt-2 space-y-2 text-sm">
+                    <li>
+                      <a
+                        href="https://www.instagram.com/petervonderph/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-amber-900/90 underline decoration-amber-400/80 underline-offset-2 transition hover:text-zinc-950"
+                      >
+                        Instagram
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href="https://www.linkedin.com/in/peter-rigert/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-amber-900/90 underline decoration-amber-400/80 underline-offset-2 transition hover:text-zinc-950"
+                      >
+                        LinkedIn
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href="https://www.fhnw.ch/de/ph/ueber-uns/portrait-organisation/personen/peter-rigert"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-amber-900/90 underline decoration-amber-400/80 underline-offset-2 transition hover:text-zinc-950"
+                      >
+                        Pädagogische Hochschule (FHNW)
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">Christian Marti</p>
+                  <ul className="mt-2 space-y-2 text-sm">
+                    <li>
+                      <a
+                        href="https://www.linkedin.com/in/christian-marti-88b62443/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-amber-900/90 underline decoration-amber-400/80 underline-offset-2 transition hover:text-zinc-950"
+                      >
+                        LinkedIn
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href="https://www.fhnw.ch/de/ph/ueber-uns/portrait-organisation/personen/christian-marti"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-amber-900/90 underline decoration-amber-400/80 underline-offset-2 transition hover:text-zinc-950"
+                      >
+                        Pädagogische Hochschule (FHNW)
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         )}
