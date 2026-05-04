@@ -7,7 +7,14 @@
 
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import {
+  use,
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
 
@@ -25,7 +32,9 @@ interface ReflectionProduct {
 const EXPECTED_EXCHANGES = 4;
 const MIN_EXCHANGES_FOR_EARLY_FINISH = 2;
 
-export default function Step9Page() {
+export default function Step9Page(props: PageProps<"/step/9">) {
+  use(props.params);
+  use(props.searchParams);
   const router = useRouter();
   const { profile, sessionCode, updateProgress, markStepCompleted } = useSession();
   const [chatStarted, setChatStarted] = useState(false);

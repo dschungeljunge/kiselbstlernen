@@ -10,11 +10,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useSession } from "@/contexts/SessionContext";
 import ProfileInsightBox from "@/components/ProfileInsightBox";
 
-export default function Step8Page() {
+export default function Step8Page(props: PageProps<"/step/8">) {
+  use(props.params);
+  use(props.searchParams);
   const { updateProgress, markStepCompleted, sessionCode } = useSession();
   const [faqOpen, setFaqOpen] = useState(false);
   const [checklistOpen, setChecklistOpen] = useState(false);

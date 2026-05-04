@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { use, useMemo, useRef, useState } from "react";
 import { EVALUATION_LIKERT_ITEM_TEXTS } from "@/lib/evaluation-likert-labels";
 
 type AnswerMap = Record<string, number>;
@@ -35,7 +35,9 @@ function emptyAnswers(): AnswerMap {
   return base;
 }
 
-export default function EvaluationPage() {
+export default function EvaluationPage(props: PageProps<"/evaluation">) {
+  use(props.params);
+  use(props.searchParams);
   const [flowStep, setFlowStep] = useState<"setup" | "survey" | "completed">("setup");
   const [anonCode, setAnonCode] = useState("");
   const [motherFirstName, setMotherFirstName] = useState("");

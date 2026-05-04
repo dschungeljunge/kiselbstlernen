@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
 import { CoachProfile } from "@/components/CoachProfile";
 import { RelevanceQuiz } from "@/components/RelevanceQuiz";
 
-export default function Home() {
+export default function Home(props: PageProps<"/">) {
+  use(props.params);
+  use(props.searchParams);
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");

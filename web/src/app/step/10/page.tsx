@@ -7,10 +7,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 import { useSession } from "@/contexts/SessionContext";
 
-export default function Step10Page() {
+export default function Step10Page(props: PageProps<"/step/10">) {
+  use(props.params);
+  use(props.searchParams);
   const { updateProgress, markStepCompleted, sessionCode } = useSession();
 
   // Fortschritt aktualisieren, wenn Seite geladen wird

@@ -1,12 +1,5 @@
 "use client";
 
-/**
- * ReflexionContext – State-Management für /reflexion
- *
- * Verwaltet: Profil aus Lern-Code, Situations-Kontext,
- * gewählte Strategien und Eingaben pro Strategie.
- */
-
 import React, {
   createContext,
   useContext,
@@ -14,6 +7,14 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
+import {
+  createEmptyLessonDocument,
+  type ConclusionData,
+  type DimensionCode,
+  type DimensionReflectionData,
+  type LessonDescriptionData,
+  type LessonReflectionDocument,
+} from "@/lib/reflexion-redesign";
 
 export interface ProfileData {
   name: string;
@@ -26,6 +27,8 @@ export interface Message {
   content: string;
 }
 
+// Legacy-Typen für ältere API-Routen und Export-Hilfen, die nach dem Redesign
+// nicht mehr von der UI verwendet werden.
 export interface SituationData {
   text: string;
   kiZusammenfassung: string;
@@ -41,43 +44,24 @@ export interface StrategyData {
   abgeschlossen: boolean;
 }
 
-export interface ZielData {
-  kontext: string;
-  absicht: string;
-  massnahme: string;
-  termin: string;
-  zielsatz: string;
-  chatHistory: Message[];
-  abgeschlossen: boolean;
-}
-
-const DEFAULT_STRATEGY_DATA: StrategyData = {
-  chatHistory: [],
-  formAnswers: {},
-  interactiveAnswers: {},
-  selbsteinschaetzung: 0,
-  naechsterSchritt: "",
-  abgeschlossen: false,
-};
-
 interface ReflexionState {
   sessionCode: string | null;
   profile: ProfileData | null;
-  situation: SituationData | null;
-  selectedStrategies: string[];
-  strategies: Record<string, StrategyData>;
-  ziel: ZielData | null;
+  lesson: LessonReflectionDocument;
   isLoading: boolean;
+  isSaving: boolean;
 }
 
 interface ReflexionContextType extends ReflexionState {
   setProfile: (profile: ProfileData) => void;
-  setSituation: (situation: SituationData) => void;
-  setSelectedStrategies: (strategies: string[]) => void;
-  updateStrategy: (code: string, data: Partial<StrategyData>) => void;
-  updateZiel: (data: Partial<ZielData>) => void;
-  saveToDatabase: () => Promise<void>;
-  getNextStrategy: (currentCode: string) => string | null;
+  updateDescription: (data: Partial<LessonDescriptionData>) => void;
+  updateDimension: (
+    code: DimensionCode,
+    data: Partial<DimensionReflectionData>
+  ) => void;
+  updateConclusion: (data: Partial<ConclusionData>) => void;
+  saveToDatabase: (overrides?: Partial<LessonReflectionDocument>) => Promise<string | null>;
+  publishLesson: () => Promise<void>;
 }
 
 const ReflexionContext = createContext<ReflexionContextType | null>(null);
@@ -86,14 +70,11 @@ export function ReflexionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<ReflexionState>({
     sessionCode: null,
     profile: null,
-    situation: null,
-    selectedStrategies: [],
-    strategies: {},
-    ziel: null,
+    lesson: createEmptyLessonDocument(),
     isLoading: true,
+    isSaving: false,
   });
 
-  // Session aus localStorage laden + Profil aus Supabase holen
   useEffect(() => {
     const code =
       typeof window !== "undefined"
@@ -101,97 +82,199 @@ export function ReflexionProvider({ children }: { children: React.ReactNode }) {
         : null;
 
     if (!code) {
-      setState((prev) => ({ ...prev, isLoading: false }));
+      queueMicrotask(() => {
+        setState((prev) => ({ ...prev, isLoading: false }));
+      });
       return;
     }
 
-    fetch("/api/session/load", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionCode: code }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        const reflexionData = data.stepData?.reflexion ?? {};
+    const sessionCode = code;
 
-        // Warmup-Empfehlung aus localStorage als Vorauswahl
-        let selectedStrategies = reflexionData.selectedStrategies ?? [];
-        if (selectedStrategies.length === 0 && typeof window !== "undefined") {
-          const warmupRaw = localStorage.getItem("warmup_empfehlung");
-          if (warmupRaw) {
-            try {
-              selectedStrategies = JSON.parse(warmupRaw);
-            } catch { /* ignore */ }
-          }
-        }
+    async function load() {
+      try {
+        const [sessionResponse, lessonResponse] = await Promise.all([
+          fetch("/api/session/load", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionCode }),
+          }),
+          fetch(`/api/reflection/lesson?sessionCode=${encodeURIComponent(sessionCode)}`),
+        ]);
+
+        const sessionData = sessionResponse.ok ? await sessionResponse.json() : {};
+        const lessonData = lessonResponse.ok ? await lessonResponse.json() : {};
+        const emptyDoc = createEmptyLessonDocument();
+        const loadedLesson = lessonData.lesson
+          ? {
+              ...emptyDoc,
+              ...lessonData.lesson,
+              description: {
+                ...emptyDoc.description,
+                ...lessonData.lesson.description,
+              },
+              dimensions: Object.fromEntries(
+                Object.entries(emptyDoc.dimensions).map(([code, defaults]) => {
+                  const incoming = (lessonData.lesson.dimensions ?? {})[code] ?? {};
+                  return [
+                    code,
+                    {
+                      ...defaults,
+                      ...incoming,
+                      answers: { ...defaults.answers, ...(incoming.answers ?? {}) },
+                      choices: { ...defaults.choices, ...(incoming.choices ?? {}) },
+                      interactiveAnswers: {
+                        ...defaults.interactiveAnswers,
+                        ...(incoming.interactiveAnswers ?? {}),
+                      },
+                    },
+                  ];
+                }),
+              ) as typeof emptyDoc.dimensions,
+              conclusion: {
+                ...emptyDoc.conclusion,
+                ...lessonData.lesson.conclusion,
+              },
+            }
+          : emptyDoc;
 
         setState((prev) => ({
           ...prev,
-          sessionCode: code,
-          profile: data.profile ?? null,
-          situation: reflexionData.situation ?? null,
-          selectedStrategies,
-          strategies: reflexionData.strategies ?? {},
-          ziel: reflexionData.ziel ?? null,
+          sessionCode,
+          profile: sessionData.profile ?? null,
+          lesson: loadedLesson,
           isLoading: false,
         }));
-      })
-      .catch(() => {
+      } catch {
         setState((prev) => ({
           ...prev,
-          sessionCode: code,
+          sessionCode,
           isLoading: false,
         }));
-      });
+      }
+    }
+
+    void load();
   }, []);
 
   const setProfile = useCallback((profile: ProfileData) => {
     setState((prev) => ({ ...prev, profile }));
   }, []);
 
-  const setSituation = useCallback((situation: SituationData) => {
-    setState((prev) => ({ ...prev, situation }));
-  }, []);
-
-  const setSelectedStrategies = useCallback((strategies: string[]) => {
-    setState((prev) => ({ ...prev, selectedStrategies: strategies }));
-  }, []);
-
-  const updateZiel = useCallback((data: Partial<ZielData>) => {
+  const updateDescription = useCallback((data: Partial<LessonDescriptionData>) => {
     setState((prev) => ({
       ...prev,
-      ziel: {
-        kontext: "",
-        absicht: "",
-        massnahme: "",
-        termin: "",
-        zielsatz: "",
-        chatHistory: [],
-        abgeschlossen: false,
-        ...prev.ziel,
-        ...data,
+      lesson: {
+        ...prev.lesson,
+        description: {
+          ...prev.lesson.description,
+          ...data,
+        },
       },
     }));
   }, []);
 
-  const updateStrategy = useCallback(
-    (code: string, data: Partial<StrategyData>) => {
-      setState((prev) => ({
-        ...prev,
-        strategies: {
-          ...prev.strategies,
-          [code]: {
-            ...DEFAULT_STRATEGY_DATA,
-            ...prev.strategies[code],
-            ...data,
+  const updateDimension = useCallback(
+    (code: DimensionCode, data: Partial<DimensionReflectionData>) => {
+      setState((prev) => {
+        const current = prev.lesson.dimensions[code];
+        return {
+          ...prev,
+          lesson: {
+            ...prev.lesson,
+            dimensions: {
+              ...prev.lesson.dimensions,
+              [code]: {
+                ...current,
+                ...data,
+                answers: {
+                  ...(current.answers ?? {}),
+                  ...(data.answers ?? {}),
+                },
+                choices: {
+                  ...(current.choices ?? {}),
+                  ...(data.choices ?? {}),
+                },
+                interactiveAnswers: {
+                  ...(current.interactiveAnswers ?? {}),
+                  ...(data.interactiveAnswers ?? {}),
+                },
+              },
+            },
           },
-        },
-      }));
+        };
+      });
     },
     []
   );
 
-  const saveToDatabase = useCallback(async () => {
+  const updateConclusion = useCallback((data: Partial<ConclusionData>) => {
+    setState((prev) => ({
+      ...prev,
+      lesson: {
+        ...prev.lesson,
+        conclusion: {
+          ...prev.lesson.conclusion,
+          ...data,
+        },
+      },
+    }));
+  }, []);
+
+  const saveToDatabase = useCallback(async (overrides?: Partial<LessonReflectionDocument>) => {
+    const currentState = await new Promise<ReflexionState>((resolve) => {
+      setState((prev) => {
+        resolve(prev);
+        return prev;
+      });
+    });
+
+    if (!currentState.sessionCode) return null;
+    const lessonToSave = {
+      ...currentState.lesson,
+      ...overrides,
+      description: {
+        ...currentState.lesson.description,
+        ...overrides?.description,
+      },
+      dimensions: {
+        ...currentState.lesson.dimensions,
+        ...overrides?.dimensions,
+      },
+      conclusion: {
+        ...currentState.lesson.conclusion,
+        ...overrides?.conclusion,
+      },
+    };
+
+    setState((prev) => ({ ...prev, isSaving: true }));
+    try {
+      const response = await fetch("/api/reflection/lesson/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionCode: currentState.sessionCode,
+          lesson: lessonToSave,
+        }),
+      });
+      const payload = await response.json();
+      const lessonId = payload.lessonId ?? lessonToSave.lessonId ?? null;
+
+      setState((prev) => ({
+        ...prev,
+        lesson: {
+          ...lessonToSave,
+          lessonId,
+        },
+        isSaving: false,
+      }));
+      return lessonId;
+    } catch {
+      setState((prev) => ({ ...prev, isSaving: false }));
+      return null;
+    }
+  }, []);
+
+  const publishLesson = useCallback(async () => {
     const currentState = await new Promise<ReflexionState>((resolve) => {
       setState((prev) => {
         resolve(prev);
@@ -201,42 +284,26 @@ export function ReflexionProvider({ children }: { children: React.ReactNode }) {
 
     if (!currentState.sessionCode) return;
 
-    await fetch("/api/reflection/save", {
+    await fetch("/api/reflection/lesson/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sessionCode: currentState.sessionCode,
-        reflexionData: {
-          situation: currentState.situation,
-          selectedStrategies: currentState.selectedStrategies,
-          strategies: currentState.strategies,
-          ziel: currentState.ziel,
-        },
+        lessonId: currentState.lesson.lessonId,
       }),
     });
   }, []);
-
-  const getNextStrategy = useCallback(
-    (currentCode: string): string | null => {
-      const selected = state.selectedStrategies;
-      const idx = selected.indexOf(currentCode);
-      if (idx === -1 || idx === selected.length - 1) return null;
-      return selected[idx + 1];
-    },
-    [state.selectedStrategies]
-  );
 
   return (
     <ReflexionContext.Provider
       value={{
         ...state,
         setProfile,
-        setSituation,
-        setSelectedStrategies,
-        updateStrategy,
-        updateZiel,
+        updateDescription,
+        updateDimension,
+        updateConclusion,
         saveToDatabase,
-        getNextStrategy,
+        publishLesson,
       }}
     >
       {children}

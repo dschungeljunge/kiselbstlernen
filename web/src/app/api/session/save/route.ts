@@ -32,7 +32,18 @@ export async function POST(request: Request) {
       updates.profile_description = profile.description;
       updates.profile_strengths = profile.strengths;
     }
-    if (stepData !== undefined) updates.step_data = stepData;
+    if (stepData !== undefined) {
+      const { data: existing } = await supabase
+        .from("learning_sessions")
+        .select("step_data")
+        .eq("session_code", sessionCode)
+        .maybeSingle();
+      const currentStepData = (existing?.step_data as Record<string, unknown>) ?? {};
+      updates.step_data = {
+        ...currentStepData,
+        ...(stepData as Record<string, unknown>),
+      };
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ success: true });

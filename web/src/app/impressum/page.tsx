@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   description: "Impressum und Anbieterkennzeichnung der KI-Kompass Weiterbildungsplattform",
 };
 
-export default function ImpressumPage() {
+export default async function ImpressumPage(props: PageProps<"/impressum">) {
+  await props.params;
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header mit Zurück-Link */}

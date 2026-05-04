@@ -1,10 +1,15 @@
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
 import { PollDeadlineBanner } from "@/components/PollDeadlineBanner";
 import { PollScheduler } from "@/components/PollScheduler";
 
-export default function MultiplikatorenPage() {
+export default function MultiplikatorenPage(
+  props: PageProps<"/multiplikatoren">,
+) {
+  use(props.params);
+  use(props.searchParams);
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Hero */}

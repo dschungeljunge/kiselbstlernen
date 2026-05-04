@@ -8,7 +8,14 @@
 
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import {
+  use,
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
 
@@ -26,7 +33,9 @@ interface ProfileResult {
 const EXPECTED_QUESTIONS = 6;
 const MIN_QUESTIONS_FOR_EARLY_FINISH = 3;
 
-export default function Step3Page() {
+export default function Step3Page(props: PageProps<"/step/3">) {
+  use(props.params);
+  use(props.searchParams);
   const [chatStarted, setChatStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");

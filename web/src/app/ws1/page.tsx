@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { WORKSHOP1_STEPS } from "@/lib/workshop1";
 
-export default function Workshop1Page() {
+export default async function Workshop1Page(props: PageProps<"/ws1">) {
+  await props.params;
   const totalMinutes = WORKSHOP1_STEPS.reduce((sum, step) => sum + step.durationMinutes, 0);
 
   return (

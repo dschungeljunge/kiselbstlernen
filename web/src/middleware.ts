@@ -18,6 +18,7 @@ const AI_ROUTES = [
   "/api/profile-insight",
   "/api/reflection-chat",
   "/api/reflection/chat",
+  "/api/reflection/conclusion-chat",
   "/api/reflection/situation",
   "/api/reflection/ziel",
   "/api/reflection/transcribe",

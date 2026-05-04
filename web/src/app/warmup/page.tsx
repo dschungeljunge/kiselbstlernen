@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { use, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -220,7 +220,9 @@ function Ergebnis({
 }
 
 // ── Haupt-Komponente ──────────────────────────────────────────────
-export default function WarmupPage() {
+export default function WarmupPage(props: PageProps<"/warmup">) {
+  use(props.params);
+  use(props.searchParams);
   const [phase, setPhase] = useState<"intro" | "spiel" | "ergebnis">("intro");
   const [currentIdx, setCurrentIdx] = useState(0);
   const [akzeptiert, setAkzeptiert] = useState<WarmupFeedback[]>([]);

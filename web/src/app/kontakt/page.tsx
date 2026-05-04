@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   description: "Kontaktmöglichkeiten für Fragen und Support zur KI-Kompass Weiterbildungsplattform",
 };
 
-export default function KontaktPage() {
+export default async function KontaktPage(props: PageProps<"/kontakt">) {
+  await props.params;
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header mit Zurück-Link */}

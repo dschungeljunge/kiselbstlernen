@@ -4,12 +4,14 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { generateSessionCode, formatSessionCode, saveSessionToLocal } from "@/lib/session-manager";
 import { useSession } from "@/contexts/SessionContext";
 
-export default function Step4Page() {
+export default function Step4Page(props: PageProps<"/step/4">) {
+  use(props.params);
+  use(props.searchParams);
   const router = useRouter();
   const { setProfile } = useSession();
   const [sessionCode, setSessionCode] = useState("");

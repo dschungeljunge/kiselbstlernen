@@ -1,5 +1,8 @@
-// /reflexion/cockpit → weitergeleitet zum Hub
 import { redirect } from "next/navigation";
-export default function CockpitRedirect() {
-  redirect("/reflexion/hub");
+
+export default async function CockpitRedirect(
+  props: PageProps<"/reflexion/cockpit">,
+) {
+  await props.params;
+  redirect("/reflexion/fazit");
 }

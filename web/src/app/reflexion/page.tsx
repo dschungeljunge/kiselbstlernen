@@ -1,15 +1,25 @@
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
 import { useReflexion } from "@/contexts/ReflexionContext";
+import { DIMENSIONS } from "@/lib/reflexion-redesign";
 
-export default function ReflexionLandingPage() {
-  const { profile, sessionCode, isLoading } = useReflexion();
+export default function ReflexionLandingPage(
+  props: PageProps<"/reflexion">,
+) {
+  use(props.params);
+  use(props.searchParams);
+  const { profile, sessionCode, lesson, isLoading } = useReflexion();
+  const completedDimensions = DIMENSIONS.filter(
+    (dimension) => lesson.dimensions[dimension.code]?.completed
+  ).length;
+  const hasDescription = lesson.description.beschreibung.trim().length > 0;
+  const hasConclusion = lesson.conclusion.completed;
 
   return (
     <div className="min-h-screen bg-zinc-50 px-6">
-      <main className="mx-auto w-full max-w-3xl pb-16 pt-14">
-        {/* Header */}
+      <main className="mx-auto w-full max-w-4xl pb-16 pt-14">
         <div className="mb-10 text-center">
           <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-yellow-400 shadow-md">
             <svg
@@ -30,11 +40,20 @@ export default function ReflexionLandingPage() {
             Reflexion meines KI-Einsatzes
           </h1>
           <p className="mt-3 text-lg text-zinc-600">
-            Workshop 2 – Zweiter Teil
+            Vier Phasen von der dokumentierten Unterrichtseinheit bis zum Fazit
           </p>
+          <div className="mx-auto mt-8 max-w-3xl overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-sm">
+            <div className="aspect-video">
+              <iframe
+                src="https://www.loom.com/embed/38e5aa125cf5495490e4c4425b2f9c93"
+                title="Kurze Übersicht: Arbeitsauftrag Reflexion"
+                allowFullScreen
+                className="h-full w-full"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Profil-Karte */}
         {!isLoading && (
           <div className="mb-8 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
             {profile && sessionCode ? (
@@ -98,20 +117,15 @@ export default function ReflexionLandingPage() {
           </div>
         )}
 
-        {/* Intro-Text */}
         <div className="mb-8 space-y-4 rounded-xl border border-zinc-200 bg-white p-8 shadow-sm">
           <h2 className="text-xl font-bold text-zinc-950">
-            Was dich erwartet
+            Ablauf
           </h2>
           <div className="space-y-3 text-sm leading-relaxed text-zinc-700">
             <p>
-              Du hast seit dem ersten Workshop einen KI-Einsatz in deinem
-              Unterricht ausprobiert und deine Erfahrungen mitgebracht. Jetzt
-              reflektieren wir diese Situation gemeinsam – strukturiert und mit
-              Unterstützung einer KI.
-            </p>
-            <p>
-              Die Reflexion besteht aus drei Teilen:
+              Du dokumentierst zuerst deine umgesetzte Unterrichtseinheit. Danach
+              reflektierst du sie anhand von fünf Dimensionen mit kurzen Video-Impulsen.
+              Erst am Schluss bündelt ein KI-Chat deine Angaben zu einem Fazit.
             </p>
           </div>
 
@@ -119,23 +133,34 @@ export default function ReflexionLandingPage() {
             {[
               {
                 step: "1",
-                title: "Situation beschreiben",
-                desc: "Du erzählst (per Text oder Audio) von deinem KI-Einsatz. Eine KI fasst die Situation zusammen und bereitet den Kontext für die Reflexion vor.",
+                title: "Unterrichtseinheit beschreiben",
+                desc: "Beruf, Lerngruppe, Thema, KI-Tools, Ziel, Material und Verlauf werden strukturiert erfasst.",
+                done: hasDescription,
               },
               {
                 step: "2",
-                title: "Strategien wählen & reflektieren",
-                desc: "Du wählst 1–5 Reflexionsstrategien aus fünf unterschiedlichen Perspektiven. Jede Strategie führt dich durch ein Gespräch oder ein strukturiertes Formular.",
+                title: "Fünf Dimensionen reflektieren",
+                desc: "Jede Dimension enthält ein Loom-Video, konkrete Leitfragen und eine Einschätzung.",
+                done: completedDimensions === DIMENSIONS.length,
               },
               {
                 step: "3",
-                title: "Cockpit",
-                desc: "Alle Erkenntnisse werden in einem persönlichen Cockpit zusammengeführt – mit konkreten nächsten Schritten für deinen nächsten KI-Einsatz.",
+                title: "Abschluss-KI-Chat",
+                desc: "Ein einziger KI-Chat zieht alle bisherigen Informationen zusammen und formuliert ein Fazit.",
+                done: hasConclusion,
+              },
+              {
+                step: "4",
+                title: "Evaluation",
+                desc: "Zum Abschluss folgt die Selbsteinschätzung für den dritten Messzeitpunkt.",
+                done: false,
               },
             ].map((item) => (
               <li key={item.step} className="flex gap-4">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-zinc-950 text-sm font-bold text-white">
-                  {item.step}
+                <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                  item.done ? "bg-yellow-400 text-zinc-950" : "bg-zinc-950 text-white"
+                }`}>
+                  {item.done ? "✓" : item.step}
                 </div>
                 <div>
                   <p className="font-semibold text-zinc-900">{item.title}</p>
@@ -146,25 +171,12 @@ export default function ReflexionLandingPage() {
           </ol>
         </div>
 
-        {/* CTA */}
-        <div className="flex justify-center">
+        <div className="grid gap-3 md:grid-cols-1">
           <Link
-            href={"/reflexion/situation"}
-            className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-10 text-base font-semibold text-white shadow-lg transition-all hover:scale-105 hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-300"
+            href="/reflexion/beschreibung"
+            className="inline-flex h-12 items-center justify-center rounded-xl bg-zinc-950 px-5 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800"
           >
             Reflexion starten
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
           </Link>
         </div>
       </main>

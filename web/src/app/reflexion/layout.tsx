@@ -1,9 +1,10 @@
 import { ReflexionProvider } from "@/contexts/ReflexionContext";
 
-export default function ReflexionLayout({
+export default async function ReflexionLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  params,
+}: LayoutProps<"/reflexion">) {
+  await params;
+
   return <ReflexionProvider>{children}</ReflexionProvider>;
 }

@@ -101,8 +101,14 @@ export async function POST(request: Request) {
       anonCode?: unknown;
       answers?: unknown;
       durationSec?: unknown;
+      measurementIndex?: unknown;
     };
-    const { anonCode: rawCode, answers, durationSec: rawDuration } = body;
+    const {
+      anonCode: rawCode,
+      answers,
+      durationSec: rawDuration,
+      measurementIndex: rawMeasurementIndex,
+    } = body;
     if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
       return NextResponse.json({ error: "Antworten fehlen." }, { status: 400 });
     }
@@ -117,7 +123,15 @@ export async function POST(request: Request) {
 
     const answersToStore = mergeAnswersWithMeta(answerRecord, rawDuration);
 
-    let measurementIndex = await getNextMeasurementIndex(anonCode);
+    const explicitMeasurementIndex =
+      typeof rawMeasurementIndex === "number" &&
+      Number.isInteger(rawMeasurementIndex) &&
+      rawMeasurementIndex >= 1 &&
+      rawMeasurementIndex <= 99
+        ? rawMeasurementIndex
+        : null;
+
+    let measurementIndex = explicitMeasurementIndex ?? (await getNextMeasurementIndex(anonCode));
     let attempts = 0;
     const maxAttempts = 3;
     const supabase = createSupabaseAdmin();
@@ -133,13 +147,19 @@ export async function POST(request: Request) {
       }
 
       const timepoint = `T${measurementIndex}`;
-      const { error } = await supabase.from("evaluation_responses").insert({
+      const payload = {
         anon_code: anonCode,
         measurement_index: measurementIndex,
         timepoint,
         answers: answersToStore,
         submitted_at: new Date().toISOString(),
-      });
+      };
+
+      const { error } = explicitMeasurementIndex
+        ? await supabase
+            .from("evaluation_responses")
+            .upsert(payload, { onConflict: "anon_code,measurement_index" })
+        : await supabase.from("evaluation_responses").insert(payload);
 
       if (!error) {
         return NextResponse.json({
@@ -150,7 +170,7 @@ export async function POST(request: Request) {
       }
 
       // Bei Race Condition (gleicher Index) nächsten Index probieren.
-      if (error.code === "23505") {
+      if (!explicitMeasurementIndex && error.code === "23505") {
         measurementIndex += 1;
         continue;
       }

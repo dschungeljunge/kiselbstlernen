@@ -7,11 +7,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 import { useSession } from "@/contexts/SessionContext";
 import ProfileInsightBox from "@/components/ProfileInsightBox";
 
-export default function Step5Page() {
+export default function Step5Page(props: PageProps<"/step/5">) {
+  use(props.params);
+  use(props.searchParams);
   const { updateProgress, markStepCompleted, sessionCode } = useSession();
 
   // Fortschritt aktualisieren, wenn Seite geladen wird

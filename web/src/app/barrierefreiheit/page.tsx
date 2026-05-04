@@ -11,7 +11,10 @@ export const metadata: Metadata = {
   description: "Erklärung zur digitalen Barrierefreiheit der KI-Kompass Weiterbildungsplattform",
 };
 
-export default function BarrierefreiheitPage() {
+export default async function BarrierefreiheitPage(
+  props: PageProps<"/barrierefreiheit">,
+) {
+  await props.params;
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header mit Zurück-Link */}

@@ -11,7 +11,10 @@ export const metadata: Metadata = {
   description: "Datenschutzerklärung der KI-Kompass Weiterbildungsplattform",
 };
 
-export default function DatenschutzPage() {
+export default async function DatenschutzPage(
+  props: PageProps<"/datenschutz">,
+) {
+  await props.params;
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header mit Zurück-Link */}

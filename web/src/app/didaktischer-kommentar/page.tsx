@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-export default function DidaktischerKommentar() {
+export default async function DidaktischerKommentar(
+  props: PageProps<"/didaktischer-kommentar">,
+) {
+  await props.params;
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header mit Rücknavigation */}

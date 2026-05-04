@@ -50,6 +50,7 @@ export function ProgressDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const isEvaluationPage = pathname === "/evaluation" || pathname.startsWith("/evaluation/");
+  const isReflexionPage = pathname === "/reflexion" || pathname.startsWith("/reflexion/");
   const isWorkshop1Page = pathname === "/ws1" || pathname.startsWith("/ws1/");
   const isWorkshop2Page = pathname === "/ws2" || pathname.startsWith("/ws2/");
   const isWorkshopPage = isWorkshop1Page || isWorkshop2Page;
@@ -89,7 +90,7 @@ export function ProgressDrawer() {
   const currentHref = pathname;
   const currentStepId = steps.find((s) => s.href === currentHref)?.id ?? "";
 
-  if (isEvaluationPage) {
+  if (isEvaluationPage || isReflexionPage) {
     return null;
   }
 
