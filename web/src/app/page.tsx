@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { use, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
 import { CoachProfile } from "@/components/CoachProfile";
 import { RelevanceQuiz } from "@/components/RelevanceQuiz";
+import { normalizeSessionCode } from "@/lib/session-manager";
 
-export default function Home(props: PageProps<"/">) {
-  use(props.params);
-  use(props.searchParams);
+export default function Home() {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -17,12 +16,13 @@ export default function Home(props: PageProps<"/">) {
   const { loadSession } = useSession();
 
   async function handleCodeSubmit() {
-    if (!code.trim()) return;
+    const normalizedCode = normalizeSessionCode(code);
+    if (!normalizedCode) return;
 
     setIsLoading(true);
     setError("");
 
-    const result = await loadSession(code);
+    const result = await loadSession(normalizedCode);
 
     if (result.success && result.currentStep) {
       // Session geladen → zur aktuellen Position springen
@@ -77,6 +77,12 @@ export default function Home(props: PageProps<"/">) {
                 className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border-2 border-zinc-900 bg-white px-8 text-base font-semibold text-zinc-900 transition-all hover:bg-zinc-100 focus:outline-none focus:ring-4 focus:ring-zinc-300"
               >
                 Evaluation ausfüllen
+              </Link>
+              <Link
+                href="/reflexion"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border-2 border-zinc-900 bg-yellow-100 px-8 text-base font-semibold text-zinc-900 transition-all hover:bg-yellow-50 focus:outline-none focus:ring-4 focus:ring-zinc-300"
+              >
+                KI-Unterricht reflektieren
               </Link>
             </div>
 
@@ -258,6 +264,29 @@ export default function Home(props: PageProps<"/">) {
                   {error}
                 </div>
               )}
+            </div>
+          </section>
+
+          {/* Reflexion */}
+          <section className="mb-16">
+            <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-wide text-yellow-600">
+                Reflexion
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-zinc-950">
+                Eigene KI-Unterrichtseinheit auswerten
+              </h2>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-zinc-700">
+                Wenn Sie bereits eine KI-Sequenz durchgeführt haben, können Sie
+                diese entlang von fünf Dimensionen reflektieren und daraus ein
+                kurzes Fazit für die nächste Durchführung ableiten.
+              </p>
+              <Link
+                href="/reflexion"
+                className="mt-5 inline-flex h-12 items-center justify-center rounded-xl bg-zinc-950 px-6 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-300"
+              >
+                Zur Reflexion
+              </Link>
             </div>
           </section>
 

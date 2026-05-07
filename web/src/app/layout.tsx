@@ -20,12 +20,9 @@ export const metadata: Metadata = {
   description: "Strukturierte KI-Weiterbildung für Lehrpersonen – Entdecken Sie praxisnah, wie Sie Künstliche Intelligenz gewinnbringend in Ihren Unterricht integrieren können.",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
-  params,
 }: LayoutProps<"/">) {
-  await params;
-
   return (
     <html lang="de">
       <body

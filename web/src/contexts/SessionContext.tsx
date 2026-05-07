@@ -14,7 +14,11 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
-import { loadSessionFromLocal, saveSessionToLocal } from "@/lib/session-manager";
+import {
+  loadSessionFromLocal,
+  normalizeSessionCode,
+  saveSessionToLocal,
+} from "@/lib/session-manager";
 
 interface ProfileData {
   name: string;
@@ -57,27 +61,30 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   });
 
   const loadSession = useCallback(async (code: string): Promise<LoadSessionResult> => {
+    const normalizedCode = normalizeSessionCode(code);
+    if (!normalizedCode) return { success: false };
+
     try {
       const res = await fetch("/api/session/load", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionCode: code }),
+        body: JSON.stringify({ sessionCode: normalizedCode }),
       });
       if (!res.ok) return { success: false };
       const data = await res.json();
       if (data.error) return { success: false };
       setState({
-        sessionCode: code,
+        sessionCode: normalizedCode,
         profile: data.profile ?? null,
         currentStep: data.currentStep ?? 1,
         completedSteps: data.completedSteps ?? [],
         stepData: data.stepData ?? {},
         isLoading: false,
       });
-      saveSessionToLocal(code);
+      saveSessionToLocal(normalizedCode);
       return { success: true, currentStep: data.currentStep ?? 1 };
     } catch {
-      setState((prev) => ({ ...prev, sessionCode: code, isLoading: false }));
+      setState((prev) => ({ ...prev, sessionCode: normalizedCode, isLoading: false }));
       return { success: false };
     }
   }, []);

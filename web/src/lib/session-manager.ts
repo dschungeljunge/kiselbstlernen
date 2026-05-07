@@ -55,10 +55,19 @@ export function generateSessionCode(profileName?: string): string {
  * "HL9HML" → "HL9-HML"
  */
 export function formatSessionCode(code: string): string {
-  if (code.length === 6) {
-    return `${code.slice(0, 3)}-${code.slice(3)}`;
+  const normalized = normalizeSessionCode(code);
+  if (normalized.length === 6) {
+    return `${normalized.slice(0, 3)}-${normalized.slice(3)}`;
   }
-  return code;
+  return normalized;
+}
+
+/**
+ * Normalisiert Eingaben wie "HL9-HML", "HL9 HML" oder "hl9hml"
+ * auf den gespeicherten Code "HL9HML".
+ */
+export function normalizeSessionCode(code: string): string {
+  return code.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 }
 
 /**
@@ -66,7 +75,7 @@ export function formatSessionCode(code: string): string {
  */
 export function saveSessionToLocal(sessionCode: string) {
   if (typeof window !== "undefined") {
-    localStorage.setItem("canvas_session_code", sessionCode);
+    localStorage.setItem("canvas_session_code", normalizeSessionCode(sessionCode));
   }
 }
 

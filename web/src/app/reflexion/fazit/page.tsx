@@ -1,13 +1,11 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReflexion, type Message } from "@/contexts/ReflexionContext";
 import { PhaseTimer } from "@/components/reflexion/PhaseTimer";
 
-export default function FazitPage(props: PageProps<"/reflexion/fazit">) {
-  use(props.params);
-  use(props.searchParams);
+export default function FazitPage() {
   const router = useRouter();
   const {
     lesson,
@@ -100,15 +98,16 @@ export default function FazitPage(props: PageProps<"/reflexion/fazit">) {
           <div className="max-h-[520px] space-y-4 overflow-y-auto p-6">
             {messages.length === 0 && (
               <div className="rounded-xl bg-yellow-50 p-5 text-sm leading-6 text-zinc-700">
-                Starte mit einer kurzen Bitte, zum Beispiel:
+                Starte ein kurzes Reflexionsgespräch. Die KI fragt zuerst nach
+                und schlägt das Kurzfazit erst nach einigen Antworten vor.
                 <button
                   type="button"
                   onClick={() =>
-                    sendMessage("Bitte stelle mir eine gezielte Rückfrage und hilf mir anschliessend, ein Fazit zu formulieren.")
+                    sendMessage("Reflexionsgespräch starten: Stelle mir bitte eine gezielte erste Rückfrage. Schlage das Kurzfazit erst nach zwei bis vier Rückfragen vor.")
                   }
                   className="mt-3 block rounded-lg bg-zinc-950 px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Abschluss-Chat starten
+                  Reflexionsgespräch starten
                 </button>
               </div>
             )}
@@ -127,7 +126,9 @@ export default function FazitPage(props: PageProps<"/reflexion/fazit">) {
             ))}
 
             {isChatLoading && (
-              <p className="text-sm text-zinc-500">Die KI denkt über dein Fazit nach...</p>
+              <p className="text-sm text-zinc-500">
+                Die KI bereitet die nächste Reflexionsfrage vor...
+              </p>
             )}
           </div>
 
@@ -139,7 +140,7 @@ export default function FazitPage(props: PageProps<"/reflexion/fazit">) {
                 onKeyDown={(event) => {
                   if (event.key === "Enter") void sendMessage(input);
                 }}
-                placeholder="Schreibe deine Antwort oder bitte um ein Fazit..."
+                placeholder="Antworte kurz und konkret. Nach einigen Rückfragen schlägt die KI ein Fazit vor..."
                 className="min-w-0 flex-1 rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:border-yellow-500 focus:outline-none"
               />
               <button

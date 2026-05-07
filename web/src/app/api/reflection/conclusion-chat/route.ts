@@ -13,6 +13,19 @@ interface Message {
   content: string;
 }
 
+function countSubstantiveTeacherReplies(messages: Message[] = []): number {
+  return messages.filter((message) => {
+    if (message.role !== "user") return false;
+    const content = message.content.trim().toLowerCase();
+    return (
+      content.length >= 20 &&
+      !content.includes("reflexionsgespräch starten") &&
+      !content.includes("abschluss-chat starten") &&
+      !content.includes("bitte stelle mir")
+    );
+  }).length;
+}
+
 function buildReflectionContext(lesson: LessonReflectionDocument): string {
   const description = lesson.description;
   const dimensionText = DIMENSIONS.map((dimension) => {
@@ -64,20 +77,39 @@ REFLEXION NACH FUENF DIMENSIONEN
 ${dimensionText}`;
 }
 
-function buildSystemPrompt(lesson: LessonReflectionDocument): string {
+function buildSystemPrompt(
+  lesson: LessonReflectionDocument,
+  messages: Message[] = [],
+): string {
+  const substantiveReplies = countSubstantiveTeacherReplies(messages);
+  const conversationPhase =
+    substantiveReplies < 2
+      ? `Du bist noch in der Gesprächsphase. Es gibt erst ${substantiveReplies} substanzielle Antwort(en) der Lehrperson. Formuliere noch kein Fazit und keinen Fazit-Entwurf.`
+      : substantiveReplies >= 4
+        ? "Du darfst jetzt ein knappes Fazit vorschlagen, wenn die Richtung klar ist. Wenn noch ein entscheidender Punkt fehlt, stelle genau eine letzte Rückfrage."
+        : "Du bist in der Verdichtungsphase. Wenn die wichtigste Erkenntnis, ein echtes Spannungsfeld und eine konkrete nächste Durchführungsidee erkennbar sind, biete jetzt ein Kurzfazit an. Wenn noch ein entscheidender Punkt fehlt, spiegle eine vorläufige Deutung in 1-2 Sätzen und stelle genau eine weitere Rückfrage.";
+
   return `Du bist ein präziser Reflexionscoach für Berufsschullehrpersonen.
 
-Du bekommst eine dokumentierte KI-Unterrichtseinheit und fünf Reflexionsdimensionen. Deine Aufgabe ist NICHT, allgemein über KI zu reden, sondern aus den vorhandenen Angaben ein fokussiertes Fazit zu entwickeln.
+Du bekommst eine dokumentierte KI-Unterrichtseinheit und fünf Reflexionsdimensionen. Deine Aufgabe ist NICHT, allgemein über KI zu reden oder sofort ein Fazit zu liefern, sondern die Lehrperson in ein kurzes, interessantes Reflexionsgespräch zu verwickeln. Ziel ist ein prägnantes Kurzfazit, das erst nach zwei bis vier echten Rückfragen entsteht.
 
 KONTEXT:
 ${buildReflectionContext(lesson)}
 
+AKTUELLER GESPRÄCHSSTAND:
+${conversationPhase}
+
 GESPRÄCHSREGELN:
-- Stelle gezielte Rückfragen, wenn für ein gutes Fazit noch etwas fehlt.
+- Beginne mit einer Beobachtung oder Spannungshypothese aus den vorhandenen Daten, dann stelle genau eine Frage.
+- Stelle Rückfragen, die professionelles Nachdenken auslösen: konkrete Situation, Entscheidungsmoment, Lernendenreaktion, eigene Rolle, nächster Versuch.
+- Frage nicht nach blossen technischen Details, ausser Technik ist offensichtlich der zentrale blinde Fleck.
+- Formuliere kein Fazit, bevor mindestens zwei substanzielle Antworten der Lehrperson vorliegen.
+- Führe maximal vier Rückfragen, dann verdichte.
 - Stelle pro Nachricht höchstens eine Frage.
 - Beziehe dich konkret auf Unterricht, Berufsfeld, Toolnutzung und die fünf Dimensionen.
-- Halte Antworten kurz und hilfreich.
-- Wenn genug Kontext vorhanden ist, formuliere ein Fazit mit: wichtigste Erkenntnis, Spannungsfeld, Konsequenz für die nächste Durchführung.
+- Halte Antworten kurz: höchstens 120 Wörter in der Gesprächsphase.
+- Wenn genug Kontext vorhanden ist, formuliere ein Fazit mit drei Teilen: wichtigste Erkenntnis, produktives Spannungsfeld, nächste konkrete Durchführungsidee.
+- Das Fazit soll als Vorschlag formuliert sein, nicht als abschliessendes Urteil.
 - Keine Emojis und keine Markdown-Tabellen.`;
 }
 
@@ -95,7 +127,7 @@ export async function POST(request: Request) {
     const completion = await openai.chat.completions.create({
       model: "gpt-5.2",
       messages: [
-        { role: "system", content: buildSystemPrompt(lesson) },
+        { role: "system", content: buildSystemPrompt(lesson, messages ?? []) },
         ...(messages ?? []).map((message) => ({
           role: message.role,
           content: message.content,
