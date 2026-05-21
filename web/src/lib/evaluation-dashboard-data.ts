@@ -18,10 +18,31 @@ export type WorkshopSlice = {
   stats: DashboardStatsPayload;
 };
 
+export type T3SummarySlice = {
+  nRows: number;
+  /** Frühestes und spätestes Einreichungsdatum (Europe/Zurich) */
+  dateFrom: string | null;
+  dateTo: string | null;
+  stats: DashboardStatsPayload;
+};
+
 export type DashboardWithWorkshopsPayload = {
   overall: DashboardStatsPayload;
+  /** T1/T2-Workshops, gruppiert nach Einreichungsdatum */
   workshops: WorkshopSlice[];
+  /** T3 über alle individuellen Termine zusammengefasst */
+  t3: T3SummarySlice | null;
 };
+
+function isWorkshopTimepoint(row: DashboardDataRow): boolean {
+  if (row.measurement_index != null) return row.measurement_index <= 2;
+  return row.timepoint === "T1" || row.timepoint === "T2";
+}
+
+function isT3Timepoint(row: DashboardDataRow): boolean {
+  if (row.measurement_index != null) return row.measurement_index === 3;
+  return row.timepoint === "T3";
+}
 
 const DAY_KEY_FORMAT = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Zurich",
@@ -59,7 +80,7 @@ export async function getEvaluationDashboardPayload(): Promise<DashboardWithWork
 
   if (error) {
     console.error("Dashboard fetch:", error);
-    return { overall: buildDashboardStats([]), workshops: [] };
+    return { overall: buildDashboardStats([]), workshops: [], t3: null };
   }
 
   const rows =
@@ -81,8 +102,11 @@ export async function getEvaluationDashboardPayload(): Promise<DashboardWithWork
 
   const overall = buildDashboardStats(rows);
 
+  const workshopRows = rows.filter(isWorkshopTimepoint);
+  const t3Rows = rows.filter(isT3Timepoint);
+
   const byWorkshop = new Map<string, DashboardDataRow[]>();
-  for (const row of rows) {
+  for (const row of workshopRows) {
     const key = workshopDayKey(row.submitted_at);
     if (!key) continue;
     if (!byWorkshop.has(key)) {
@@ -100,5 +124,20 @@ export async function getEvaluationDashboardPayload(): Promise<DashboardWithWork
       stats: buildDashboardStats(dayRows),
     }));
 
-  return { overall, workshops };
+  const t3DateKeys = t3Rows
+    .map((r) => workshopDayKey(r.submitted_at))
+    .filter((k): k is string => k != null)
+    .sort((a, b) => a.localeCompare(b));
+
+  const t3: T3SummarySlice | null =
+    t3Rows.length > 0
+      ? {
+          nRows: t3Rows.length,
+          dateFrom: t3DateKeys[0] ? workshopDayLabel(t3DateKeys[0]) : null,
+          dateTo: t3DateKeys.at(-1) ? workshopDayLabel(t3DateKeys.at(-1)!) : null,
+          stats: buildDashboardStats(t3Rows),
+        }
+      : null;
+
+  return { overall, workshops, t3 };
 }

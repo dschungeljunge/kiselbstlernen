@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EvaluationDashboardClient } from "@/components/EvaluationDashboardClient";
+import { EvaluationDashboardShell } from "@/components/EvaluationDashboardShell";
 import { getEvaluationDashboardPayload } from "@/lib/evaluation-dashboard-data";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage(props: PageProps<"/dashboard">) {
   await props.params;
   const payload = await getEvaluationDashboardPayload();
-  const { overall, workshops } = payload;
+  const { overall, workshops, t3 } = payload;
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -23,7 +23,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
             Evaluation: Wirkung der Weiterbildung
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-zinc-600">
-            Kompakte Übersicht für die Projektleitung — inklusive separater Auswertung pro Workshop-Tag.
+            Auswertung für die Projektleitung — wählen Sie eine Gruppe oder die Gesamtübersicht.
           </p>
         </div>
       </header>
@@ -33,40 +33,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
             Noch keine Evaluationen in der Datenbank.
           </p>
         ) : (
-          <div className="space-y-10">
-            {workshops.length > 0 && (
-              <section className="rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
-                <p className="font-medium text-zinc-900">Workshop-Aufteilung nach Datum (Europe/Zurich)</p>
-                <ul className="mt-2 list-inside list-disc space-y-1">
-                  {workshops.map((w) => (
-                    <li key={w.dateKey}>
-                      {w.label}: {w.nRows} Datensätze
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
-            {workshops.map((w) => (
-              <section key={w.dateKey} className="space-y-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-zinc-900">Workshop {w.label}</h2>
-                  <p className="text-sm text-zinc-600">Auswertung nur für Einreichungen dieses Tages.</p>
-                </div>
-                <EvaluationDashboardClient data={w.stats} />
-              </section>
-            ))}
-
-            <section className="space-y-4">
-              <div>
-                <h2 className="text-xl font-semibold text-zinc-900">Gesamtauswertung (alle Workshops)</h2>
-                <p className="text-sm text-zinc-600">
-                  Referenzansicht über alle verfügbaren Einreichungen.
-                </p>
-              </div>
-              <EvaluationDashboardClient data={overall} />
-            </section>
-          </div>
+          <EvaluationDashboardShell overall={overall} workshops={workshops} t3={t3} />
         )}
       </main>
     </div>

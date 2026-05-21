@@ -31,7 +31,13 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-type Props = { data: DashboardStatsPayload };
+type DashboardContext = "overall" | "workshop" | "t3";
+
+type Props = {
+  data: DashboardStatsPayload;
+  context?: DashboardContext;
+  title?: string;
+};
 
 const EXCLUSION_FLAG_LABEL: Record<ExclusionFlag, string> = {
   too_fast: "Dauer (zu schnell, falls erfasst)",
@@ -91,7 +97,7 @@ function TimepointDistTooltip({ active, label, block }: DistTooltipProps) {
   );
 }
 
-export function EvaluationDashboardClient({ data }: Props) {
+export function EvaluationDashboardClient({ data, context = "overall", title }: Props) {
   const [tab, setTab] = useState<TabId>("overview");
   const tabPanelId = useId();
   const tabListId = useId();
@@ -132,6 +138,9 @@ export function EvaluationDashboardClient({ data }: Props) {
       ? `${(cl.shareT1WithFollowupT2 * 100).toFixed(1).replace(".", ",")} %`
       : "—";
 
+  const showLinkage = context !== "t3";
+  const t3Block = byTimepoint.find((b) => b.timepoint === "T3");
+
   return (
     <div className="space-y-8">
       <section
@@ -140,38 +149,62 @@ export function EvaluationDashboardClient({ data }: Props) {
       >
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-900">Auf einen Blick</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">
+              {title ? `${title} — Auf einen Blick` : "Auf einen Blick"}
+            </h2>
             <p className="mt-0.5 text-xs text-zinc-500">
-              Stichprobe, Längsschnitt und Datenstand — Details unter «Methodik &amp; Details».
+              {context === "t3"
+                ? "Individuelle Reflexions-Nachmessung — Details unter «Methodik & Details»."
+                : "Stichprobe, Längsschnitt und Datenstand — Details unter «Methodik & Details»."}
             </p>
           </div>
           <p className="text-xs tabular-nums text-zinc-500">
             Stand: {new Date(data.generatedAt).toLocaleString("de-CH")} · DB-Zeilen: {data.nRows}
           </p>
         </div>
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-4 py-3">
-            <dt className="text-xs font-medium text-zinc-500">Längsschnitt (gleicher Code T1↔T2)</dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{cl.nCodesWithT1andT2}</dd>
-            <dd className="mt-0.5 text-xs text-zinc-600">Anonym-Codes mit T1 und T2</dd>
-          </div>
-          <div className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-4 py-3">
-            <dt className="text-xs font-medium text-zinc-500">Rücklauf T1 → T2</dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{shareT1T2Pct}</dd>
-            <dd className="mt-0.5 text-xs text-zinc-600">Anteil T1-Befragte mit passendem T2</dd>
-          </div>
+        <dl
+          className={cn(
+            "mt-4 grid gap-3",
+            showLinkage ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3",
+          )}
+        >
+          {showLinkage && (
+            <>
+              <div className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-4 py-3">
+                <dt className="text-xs font-medium text-zinc-500">Längsschnitt (gleicher Code T1↔T2)</dt>
+                <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{cl.nCodesWithT1andT2}</dd>
+                <dd className="mt-0.5 text-xs text-zinc-600">Anonym-Codes mit T1 und T2</dd>
+              </div>
+              <div className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-4 py-3">
+                <dt className="text-xs font-medium text-zinc-500">Rücklauf T1 → T2</dt>
+                <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{shareT1T2Pct}</dd>
+                <dd className="mt-0.5 text-xs text-zinc-600">Anteil T1-Befragte mit passendem T2</dd>
+              </div>
+            </>
+          )}
+          {context === "t3" && t3Block && (
+            <div className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-4 py-3">
+              <dt className="text-xs font-medium text-zinc-500">T3 in Auswertung</dt>
+              <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{t3Block.nAnalyzed}</dd>
+              <dd className="mt-0.5 text-xs text-zinc-600">
+                M = {t3Block.totalScoreMean.toFixed(2).replace(".", ",")} (Summenskala)
+              </dd>
+            </div>
+          )}
           <div className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-4 py-3">
             <dt className="text-xs font-medium text-zinc-500">Ausgeschlossen (Qualität)</dt>
             <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{nExcludedSubmissions}</dd>
             <dd className="mt-0.5 text-xs text-zinc-600">Vollständige Bogen, ohne Doppelzählung</dd>
           </div>
-          <div className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-4 py-3">
-            <dt className="text-xs font-medium text-zinc-500">T1/T2-Kohorte (Mittelwerte T1, T2)</dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{cohortT1T2.nAnonCodes}</dd>
-            <dd className="mt-0.5 text-xs text-zinc-600">
-              Codes mit T1+T2 für {cohortT1T2.appliesToTimepoints.join(" und ")}
-            </dd>
-          </div>
+          {showLinkage && (
+            <div className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-4 py-3">
+              <dt className="text-xs font-medium text-zinc-500">T1/T2-Kohorte (Mittelwerte T1, T2)</dt>
+              <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{cohortT1T2.nAnonCodes}</dd>
+              <dd className="mt-0.5 text-xs text-zinc-600">
+                Codes mit T1+T2 für {cohortT1T2.appliesToTimepoints.join(" und ")}
+              </dd>
+            </div>
+          )}
         </dl>
       </section>
 
@@ -543,6 +576,7 @@ export function EvaluationDashboardClient({ data }: Props) {
                     </div>
                   </section>
 
+                  {showLinkage && (
                   <section className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-5">
                     <h2 className="text-base font-semibold text-zinc-900">Längsschnitt: gleicher Anonym-Code (T1 ↔ T2)</h2>
                     <p className="mt-2 text-sm leading-relaxed text-zinc-700">
@@ -626,6 +660,7 @@ export function EvaluationDashboardClient({ data }: Props) {
                         );
                       })()}
                   </section>
+                  )}
 
                   <section
                     className="rounded-xl border border-zinc-200 bg-white p-5"
