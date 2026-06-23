@@ -268,9 +268,9 @@ export function SubscaleLineChart({ data, size = "default", showDeltaTable = tru
           <LineChart data={subLineData} margin={{ top: 12, right: 12, left: 4, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-zinc-200" />
             <XAxis dataKey="timepointLabel" tick={{ fontSize: size === "presentation" ? 12 : 11 }} />
-            <YAxis domain={[1, 5]} tickCount={5} width={36} tick={{ fontSize: 11 }}>
+            <YAxis domain={[3, 5]} tickCount={3} width={36} tick={{ fontSize: 11 }}>
               <Label
-                value="Mittelwert (Skala 1–5)"
+                value="Mittelwert (Skala 3–5)"
                 angle={-90}
                 position="insideLeft"
                 style={Y_AXIS_LABEL_STYLE}
