@@ -1,8 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { EvaluationDashboardClient } from "@/components/EvaluationDashboardClient";
-import { cn } from "@/lib/cn";
+import {
+  resolveSliceIdFromGruppe,
+  type DashboardViewMode,
+} from "@/lib/evaluation-dashboard-presentation";
 import type { DashboardStatsPayload } from "@/lib/evaluation-statistics";
 import type { T3SummarySlice, WorkshopSlice } from "@/lib/evaluation-dashboard-data";
 
@@ -22,12 +26,6 @@ type Props = {
   t3: T3SummarySlice | null;
 };
 
-function timepointCounts(stats: DashboardStatsPayload): string {
-  return stats.codeLinkage.nRowsByTimepoint
-    .map((r) => `${r.timepoint}: ${r.nRows}`)
-    .join(" · ");
-}
-
 function buildSlices(overall: DashboardStatsPayload, workshops: WorkshopSlice[], t3: T3SummarySlice | null): DashboardSlice[] {
   const slices: DashboardSlice[] = [
     {
@@ -43,7 +41,7 @@ function buildSlices(overall: DashboardStatsPayload, workshops: WorkshopSlice[],
     slices.push({
       id: `workshop-${w.dateKey}`,
       label: w.label,
-      description: `Workshop-Gruppe · ${w.nRows} Datensätze (T1/T2)`,
+      description: `Workshop-Gruppe · ${w.nRows} Datensätze`,
       context: "workshop",
       stats: w.stats,
     });
@@ -60,8 +58,8 @@ function buildSlices(overall: DashboardStatsPayload, workshops: WorkshopSlice[],
       id: "t3",
       label: "T3 Reflexion",
       description: range
-        ? `${t3.nRows} Einreichungen · ${range}`
-        : `${t3.nRows} Einreichungen über individuelle Termine`,
+        ? `${t3.nRows} Einreichungen · individuelle Zeitpunkte, ${range}`
+        : `${t3.nRows} Einreichungen · individuelle Zeitpunkte im Frühling/Sommer`,
       context: "t3",
       stats: t3.stats,
     });
@@ -70,56 +68,67 @@ function buildSlices(overall: DashboardStatsPayload, workshops: WorkshopSlice[],
   return slices;
 }
 
+function resolveInitialSliceId(slices: DashboardSlice[], gruppe: string | null, modus: string | null): string {
+  const fromUrl = resolveSliceIdFromGruppe(slices, gruppe);
+  if (fromUrl) return fromUrl;
+  if (modus === "experten") return "overall";
+  const firstWorkshop = slices.find((s) => s.context === "workshop");
+  if (firstWorkshop) return firstWorkshop.id;
+  return "overall";
+}
+
+function parseViewMode(modus: string | null): DashboardViewMode {
+  return modus === "experten" ? "experten" : "diskussion";
+}
+
 export function EvaluationDashboardShell({ overall, workshops, t3 }: Props) {
+  const searchParams = useSearchParams();
   const slices = useMemo(() => buildSlices(overall, workshops, t3), [overall, workshops, t3]);
-  const [activeId, setActiveId] = useState("overall");
+
+  const gruppe = searchParams.get("gruppe");
+  const modus = searchParams.get("modus");
+  const praesentation = searchParams.get("praesentation") === "1";
+
+  const [activeId, setActiveId] = useState(() => resolveInitialSliceId(slices, gruppe, modus));
+
+  useEffect(() => {
+    const next = resolveInitialSliceId(slices, gruppe, modus);
+    setActiveId(next);
+  }, [slices, gruppe, modus]);
+
   const active = slices.find((s) => s.id === activeId) ?? slices[0]!;
+  const viewMode = parseViewMode(modus);
 
   return (
     <div className="space-y-6">
-      <section aria-label="Auswertungsbereich wählen">
-        <p className="text-sm font-medium text-zinc-900">Auswertung wählen</p>
-        <p className="mt-0.5 text-sm text-zinc-600">
-          T1/T2 pro Workshop-Gruppe, T3 zusammengefasst oder Gesamtübersicht — jeweils eine Detailansicht.
-        </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {slices.map((slice) => {
-            const selected = slice.id === activeId;
-            const tpSummary = timepointCounts(slice.stats);
-            return (
-              <button
-                key={slice.id}
-                type="button"
-                onClick={() => setActiveId(slice.id)}
-                aria-pressed={selected}
-                className={cn(
-                  "rounded-xl border px-4 py-3 text-left transition-colors",
-                  selected
-                    ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
-                    : "border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:bg-zinc-50",
-                )}
-              >
-                <p className="text-sm font-semibold">{slice.label}</p>
-                <p className={cn("mt-1 text-xs leading-relaxed", selected ? "text-zinc-300" : "text-zinc-600")}>
-                  {slice.description}
-                </p>
-                {tpSummary && (
-                  <p
-                    className={cn(
-                      "mt-2 text-xs tabular-nums",
-                      selected ? "text-zinc-400" : "text-zinc-500",
-                    )}
-                  >
-                    {tpSummary}
-                  </p>
-                )}
-              </button>
-            );
-          })}
+      <section aria-label="Auswertungsbereich wählen" className="print:hidden">
+        <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-zinc-900">Auswertung</p>
+            <p className="mt-0.5 text-xs text-zinc-600">{active.description}</p>
+          </div>
+          <select
+            value={activeId}
+            onChange={(event) => setActiveId(event.target.value)}
+            className="min-w-0 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 shadow-sm sm:min-w-64"
+            aria-label="Auswertung wählen"
+          >
+            {slices.map((slice) => (
+              <option key={slice.id} value={slice.id}>
+                {slice.label}
+              </option>
+            ))}
+          </select>
         </div>
       </section>
 
-      <EvaluationDashboardClient data={active.stats} context={active.context} title={active.label} />
+      <EvaluationDashboardClient
+        data={active.stats}
+        context={active.context}
+        title={active.label}
+        initialViewMode={viewMode}
+        initialPresentation={praesentation}
+      />
     </div>
   );
 }

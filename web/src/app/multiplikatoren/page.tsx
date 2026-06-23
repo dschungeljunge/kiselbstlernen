@@ -2,8 +2,6 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { PollDeadlineBanner } from "@/components/PollDeadlineBanner";
-import { PollScheduler } from "@/components/PollScheduler";
 
 export default function MultiplikatorenPage(
   props: PageProps<"/multiplikatoren">,
@@ -225,7 +223,7 @@ export default function MultiplikatorenPage(
                   </h3>
                 </div>
                 <p className="mb-4 text-sm font-medium text-zinc-500">
-                  Dauer: 3 Stunden (je nach Termin Nachmittag oder Abend)
+                  Dauer: 3 Stunden (13.30–16.30 Uhr)
                 </p>
                 <ol className="space-y-3">
                   <li className="flex gap-3">
@@ -234,10 +232,16 @@ export default function MultiplikatorenPage(
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-zinc-900">
-                        KI Update
+                        Rückblick erster Workshop-Tag und Diskussion Evaluation
                       </p>
                       <p className="text-sm text-zinc-600">
-                        Neuste Entwicklungen, Hot-Topics und Diskussion
+                        Auswertung und Besprechung der Ergebnisse –{" "}
+                        <Link
+                          href="/dashboard?modus=diskussion&praesentation=1"
+                          className="font-medium text-yellow-700 underline decoration-yellow-400 underline-offset-2 hover:text-yellow-800"
+                        >
+                          Evaluation-Dashboard
+                        </Link>
                       </p>
                     </div>
                   </li>
@@ -247,10 +251,10 @@ export default function MultiplikatorenPage(
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-zinc-900">
-                        Erkenntnisse erster Weiterbildungstag
+                        Kurzinput «KI-Agenten»
                       </p>
                       <p className="text-sm text-zinc-600">
-                        Rückblick und Lessons Learned vom ersten Weiterbildungstag
+                        Aktuelle Entwicklungen und Implikationen für den Unterricht
                       </p>
                     </div>
                   </li>
@@ -260,10 +264,24 @@ export default function MultiplikatorenPage(
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-zinc-900">
-                        Deep-Dive zweiter Weiterbildungstag
+                        Ausblick und Organisation zweiter Workshop-Tag
                       </p>
                       <p className="text-sm text-zinc-600">
-                        Vorbereitung auf den nächsten Workshop-Block
+                        Planung, Rollen und offene Fragen zum nächsten Block
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-yellow-100 text-xs font-bold text-yellow-700">
+                      4
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-900">
+                        Wenn Zeit: Sammlung kuratieren
+                      </p>
+                      <p className="text-sm text-zinc-600">
+                        Gemeinsame Gestaltung der öffentlichen Sammlung dokumentierter
+                        KI-Unterrichtseinheiten
                       </p>
                     </div>
                   </li>
@@ -286,39 +304,86 @@ export default function MultiplikatorenPage(
                       <circle cx="12" cy="10" r="3" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-zinc-950">Ort</h3>
+                  <h3 className="text-lg font-semibold text-zinc-950">
+                    Termin &amp; Ort
+                  </h3>
                 </div>
-                <div className="rounded-xl bg-zinc-50 p-4">
-                  <p className="text-base font-semibold text-zinc-900">
-                    FHNW Campus Olten
-                  </p>
-                  <p className="mt-1 text-sm text-zinc-600">
-                    Genauer Raum wird mit der Terminbestätigung kommuniziert.
-                  </p>
+                <div className="space-y-3 rounded-xl bg-zinc-50 p-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                      Datum
+                    </p>
+                    <p className="mt-0.5 text-base font-semibold text-zinc-900">
+                      Mittwoch, 24. Juni 2026
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                      Zeit
+                    </p>
+                    <p className="mt-0.5 text-base font-semibold text-zinc-900">
+                      13.30–16.30 Uhr
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                      Ort
+                    </p>
+                    <p className="mt-0.5 text-base font-semibold text-zinc-900">
+                      FHNW Olten, Gebäude OVR, Raum A131
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* --- Section 4: Terminfindung --- */}
+          {/* --- Section 4: Planung zweiter Workshop-Tag --- */}
           <section>
             <div className="mb-6 inline-block">
               <h2 className="text-3xl font-bold tracking-tight text-zinc-950">
-                Terminfindung
+                Planung zweiter Workshop-Tag
               </h2>
               <div className="mt-2 h-1 w-16 rounded-full bg-yellow-400" />
             </div>
-            <p className="mb-6 text-base text-zinc-600">
-              Bitte trag deine Verfügbarkeit für die vorgeschlagenen Termine
-              ein, damit wir den besten Termin für den Vorbereitungskurs finden.
+            <p className="mb-4 text-base text-zinc-600">
+              Gemeinsames Miro-Board zur Organisation des zweiten Weiterbildungstags.
+              Ihr könnt direkt im Board mitarbeiten – am besten im Vollbildmodus.
             </p>
-
-            <PollDeadlineBanner />
-
-            <PollScheduler />
+            <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-zinc-800">
+              <span className="font-semibold text-zinc-900">Board-Passwort:</span>{" "}
+              <code className="rounded bg-white px-2 py-0.5 font-mono text-sm text-zinc-900">
+                BBZOlten26
+              </code>
+              <span className="mt-1 block text-zinc-600">
+                Wird beim Öffnen des Boards in Miro abgefragt.
+              </span>
+            </div>
+            <div className="overflow-hidden rounded-2xl border-2 border-zinc-200 bg-white shadow-sm">
+              <div className="aspect-video w-full">
+                <iframe
+                  title="Miro: Planung zweiter Workshop-Tag"
+                  src="https://miro.com/app/live-embed/uXjVHCvRS2k=/?embedMode=view_only_without_ui&moveToViewport=-981,-464,1632,832&embedId=776338177275"
+                  className="h-full w-full border-0"
+                  scrolling="no"
+                  allow="fullscreen; clipboard-read; clipboard-write"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+            <p className="mt-3 text-center text-sm text-zinc-500">
+              <a
+                href="https://miro.com/app/board/uXjVHCvRS2k=/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-yellow-700 underline decoration-yellow-400 underline-offset-2 hover:text-yellow-800"
+              >
+                Board in neuem Tab öffnen
+              </a>
+            </p>
           </section>
 
-          {/* --- Section 4: Ressourcen-Bibliothek --- */}
+          {/* --- Section 5: Ressourcen-Bibliothek --- */}
           <section>
             <div className="mb-6 inline-block">
               <h2 className="text-3xl font-bold tracking-tight text-zinc-950">

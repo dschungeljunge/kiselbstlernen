@@ -24,3 +24,31 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Evaluation-Dashboard: Präsentations- und Druckmodus */
+.dashboard-presentation {
+  font-size: 1.05rem;
+}
+
+.dashboard-presentation .recharts-text {
+  font-size: 12px !important;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .dashboard-presentation,
+  main {
+    max-width: none;
+  }
+
+  details:not([open]) > *:not(summary) {
+    display: none;
+  }
+
+  details[open] summary {
+    list-style: none;
+  }
+}
