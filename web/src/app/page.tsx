@@ -84,6 +84,12 @@ export default function Home() {
               >
                 KI-Unterricht reflektieren
               </Link>
+              <Link
+                href="/spezialprogramm"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border-2 border-zinc-900 bg-white px-8 text-base font-semibold text-zinc-900 transition-all hover:bg-zinc-100 focus:outline-none focus:ring-4 focus:ring-zinc-300"
+              >
+                KI@BBZ Olten Spezialprogramm
+              </Link>
             </div>
 
             {/* Kernmerkmale */}
